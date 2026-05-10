@@ -1,0 +1,31 @@
+services:
+  camerbay:
+    build: .
+    container_name: camerbay
+    expose:
+      - 8082
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
+      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET}
+      STREAM_KEY: ${STREAM_KEY}
+      STREAM_SECRET: ${STREAM_SECRET}
+      DEV_MODE: ${DEV_MODE:-false}
+    labels:
+      traefik.enable: true
+      traefik.http.routers.camerbay.rule: Host(`${CAMERBAY_DOMAIN}`)
+      traefik.http.routers.camerbay.entrypoints: websecure
+      traefik.http.routers.camerbay.tls: true
+      traefik.http.routers.camerbay.tls.certresolver: letsencrypt
+      traefik.http.routers.camerbay.priority: 100
+      # traefik.http.routers.camerbay.middlewares: tinyauth-forward@docker
+      traefik.http.routers.camerbay.service: camerbay
+      traefik.http.services.camerbay.loadbalancer.server.port: 8082
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+networks:
+  dokploy-network:
+    external: true

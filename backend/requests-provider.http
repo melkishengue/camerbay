@@ -1,0 +1,73 @@
+@emailProvider=ornelayepgang@gmail.com
+@usernameProvider=ornelayepgang
+
+### onboard new provider
+
+POST http://localhost:8082/api/v1/users/onboarding
+Content-Type: application/json
+Remote-Email: {{emailProvider}}
+Remote-User: {{usernameProvider}}
+
+{
+  "phone": "+04917643244760",
+  "role": "PROVIDER",
+  "profilePhotoUrl": "https://images.pexels.com/photos/668927/pexels-photo-668927.jpeg",
+  "providerInfo": {
+    "plz": 65183,
+    "description": "Des mains faites pour l'or mais elles sont dans la merde.",
+    "businessName": "GoldenHands"
+  }
+}
+
+### get my profile
+
+GET http://localhost:8082/api/v1/users/me
+Content-Type: application/json
+Remote-Email: {{emailProvider}}
+Remote-User: {{usernameProvider}}
+
+### update user info
+
+PUT http://localhost:8082/api/v1/users/me
+Content-Type: application/json
+Remote-Email: {{emailProvider}}
+Remote-User: {{usernameProvider}}
+
+{
+  "phone": "+0049123567890",
+  "name": "Ornela Yepgang Kemajou"
+}
+
+### get provider profile
+
+GET http://localhost:8082/api/v1/provider-profiles/me
+Content-Type: application/json
+Remote-Email: {{emailProvider}}
+Remote-User: {{usernameProvider}}
+
+### deactivate my profile
+
+PATCH http://localhost:8082/api/v1/provider-profiles/me/deactivate
+Content-Type: application/json
+Remote-Email: {{emailProvider}}
+Remote-User: {{usernameProvider}}
+
+### activate my profile
+
+PATCH http://localhost:8082/api/v1/provider-profiles/me/activate
+Content-Type: application/json
+Remote-Email: {{emailProvider}}
+Remote-User: {{usernameProvider}}
+
+### update provider profile
+
+PUT http://localhost:8082/api/v1/provider-profiles/me
+Content-Type: application/json
+Remote-Email: {{emailProvider}}
+Remote-User: {{usernameProvider}}
+
+{
+  "businessName": "GoldenHands",
+  "description": "Des mains faites pour l'or mais elles sont dans la merde."
+}
+

@@ -1,0 +1,45 @@
+@apiBaseUrl=http://localhost:8082/api/v1
+@accessToken=eyJhbGciOiJSUzI1NiIsImtpZCI6IjM0Nzk2NTg4MjMwOTM0NTc4NyIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2F1dGguYWZyaWJ5dGVzLmNvbSIsInN1YiI6IjM0Nzk5MDEzMDU3MDU1OTk5NSIsImF1ZCI6WyIzNDc5NjU4ODIyNzU3MjU4MTkiLCIzNDc5NjU4ODIyNzU3OTEzNTUiLCIzNDc5NjU4ODIyNzU4NTY4OTEiLCIzNDc5NjU4ODIyNzU5MjI0MjciLCIzNDc5NjU4Nzk5OTQxNTU1MTUiXSwiZXhwIjoxNzY2ODE4MjkzLCJpYXQiOjE3NjY3NzUwOTMsImF1dGhfdGltZSI6MTc2Njc3NTA5MCwibm9uY2UiOiJVVmd4VlV4M1NreE1NbWxXTW1OVlQyWTJjblJLV2xCTE0waEpRVVkyVms1a1dYQkRjQzFuWkU5VVpVOW8iLCJhenAiOiIzNDc5NjU4ODIyNzU5MjI0MjciLCJjbGllbnRfaWQiOiIzNDc5NjU4ODIyNzU5MjI0MjciLCJhdF9oYXNoIjoiRmFGOTc1T2NodW1vMFlPSHhQYk5GZyIsInNpZCI6IlYxXzM1MTE1MTM2NDQ1OTQ2MzE2MyJ9.h5ByWvk4fpZhzrzyu1s25jRKWJAFC2yeXAGNpPHewHmUeb1VcPxzTFNbUCOm_dGazb9ozf0ApAnu0x0R11N1VwESJwDEEfTByapBn2mfUfkctZrVuEkO1lE8126pWDuBYfEdiPpTWxlRsitaPJl74pEzzPXXXKxCyuO1JOYHpWLBQQAZ-Voe1Xjrs3NC1md_6tJbVj7QdoEW8cYTuisZ1w0R0fPHKBOPa23zMQKQmsXpXZ5oZRB7oXOgS51WrP43ZYHah5KkdaIdpVsSSlavOSqGHLpo0sFWmcMc-H6BIOHuiH5dLBXqX8ICtgeSrhhvfybrp9le1e3ru2nSYt6npQ
+
+### search offers (browse mode)
+GET {{apiBaseUrl}}/offers/search
+
+### fuzzy search - typo tolerance
+GET {{apiBaseUrl}}/offers/search?searchText=coiffur
+
+### fuzzy search with category
+GET {{apiBaseUrl}}/offers/search?searchText=tresse&category=HAIR_BEAUTY
+
+### fuzzy search with location
+GET {{apiBaseUrl}}/offers/search?searchText=coiffeuse&latitude=50.0782&longitude=8.2398&radiusKm=20
+
+### create offer
+POST {{apiBaseUrl}}/offers
+Content-Type: application/json
+
+{
+  "description": "I offer beauty services for all of you in wiesbaden and around (20km around)",
+  "title": "Tresses à Domicile",
+  "category": "HAIR_BEAUTY"
+}
+
+### get offer
+GET {{apiBaseUrl}}/offers/d50a8041-3149-4f5a-8f89-4e3c76e0dfbe
+Content-Type: application/json
+
+### update offer
+PUT {{apiBaseUrl}}/offers/d50a8041-3149-4f5a-8f89-4e3c76e0dfbe
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "description": "I offer beauty services for all of you in wiesbaden and around (20km around)",
+  "title": "Tresses à Domicile",
+  "category": "HAIR_BEAUTY",
+  "price": 30, "promotionalPrice": 20,
+  "details": "Coiffeuse passionnée et expérimentée. Je suis spécialisée dans rasta américain , à l'ancienne, coiffures au vent avec rajouts, les coupes modernes, les chignons etc... Mon objectif est de révéler votre beauté naturelle et de vous offrir une expérience capillaire personnalisée et de qualité. Prête à transformer votre look !",
+  "photos": [
+    "https://images.pexels.com/photos/713527/pexels-photo-713527.jpeg",
+    "https://images.pexels.com/photos/1661837/pexels-photo-1661837.jpeg"
+  ]
+}

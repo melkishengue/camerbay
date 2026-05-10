@@ -1,0 +1,29 @@
+@apiBaseUrl=http://localhost:8082/api/v1
+@accessToken=YOUR_ACCESS_TOKEN_HERE
+
+### Register a push token
+POST {{apiBaseUrl}}/users/me/push-token
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "expoPushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "platform": "ios",
+  "deviceId": "device-123"
+}
+
+### List notifications (paginated)
+GET {{apiBaseUrl}}/notifications?page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+### Get unread notification count
+GET {{apiBaseUrl}}/notifications/unread-count
+Authorization: Bearer {{accessToken}}
+
+### Mark a single notification as read
+PUT {{apiBaseUrl}}/notifications/NOTIFICATION_ID_HERE/read
+Authorization: Bearer {{accessToken}}
+
+### Mark all notifications as read
+PUT {{apiBaseUrl}}/notifications/read-all
+Authorization: Bearer {{accessToken}}

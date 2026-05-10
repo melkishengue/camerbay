@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "364903763083",
+    "project_id": "camerbay-8bf62",
+    "storage_bucket": "camerbay-8bf62.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364903763083:android:1c73068aba73179babd88e",
+        "android_client_info": {
+          "package_name": "com.camerbay.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOt7hzGuwA880V1dC3nPwOOX0E2THZL8o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

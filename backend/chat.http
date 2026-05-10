@@ -1,0 +1,15 @@
+@melkisToken=rqSb6LN738q2NUaMWDqa6vZL4IjOBjJPNNbk5o6PWq6ZDN7WpYCERfBXTCLA5p01eZNKHT2_Tl3hBm9eMRZqbi8A4K_5tDIzPKQpeSrz
+@adminToken=BPCNDzsXXAnFh3h-zF4XzbuzJ1ofHzVg0wwcvrGBFXLBbPJBgn3Rvclr4jgULySGD7Rdym_WXePD2tYp27_2OkuCQemtORg9-C5Ll3ZI
+
+### Get Stream Chat Token (do this first)
+GET http://localhost:8082/api/chat/token
+Authorization: Bearer {{melkisToken}}
+
+### Create a new channel between current user and a provider
+POST http://localhost:8082/api/chat/channels
+Content-Type: application/json
+Authorization: Bearer {{melkisToken}}
+
+{
+  "providerId": "347965879994614267"
+}

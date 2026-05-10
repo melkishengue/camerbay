@@ -1,0 +1,40 @@
+@apiBaseUrl=http://localhost:8082/api/v1
+
+### list active categories
+GET {{apiBaseUrl}}/categories
+
+### create category - Hair & Beauty
+POST {{apiBaseUrl}}/categories
+Content-Type: application/json
+
+{
+  "title": "Beauté",
+  "name": "HAIR_BEAUTY"
+}
+
+### create category - Food & Catering
+POST {{apiBaseUrl}}/categories
+Content-Type: application/json
+
+{
+  "title": "Collation",
+  "name": "FOOD_CATERING"
+}
+
+### create category - Fashion
+POST {{apiBaseUrl}}/categories
+Content-Type: application/json
+
+{
+  "title": "Style",
+  "name": "FASHION"
+}
+
+### create category - Beverge
+POST {{apiBaseUrl}}/categories
+Content-Type: application/json
+
+{
+  "title": "Boisson",
+  "name": "BEVERAGE"
+}

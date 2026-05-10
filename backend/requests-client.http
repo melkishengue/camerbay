@@ -1,0 +1,36 @@
+@emailClient=henguemelkispro@yahoo.com
+@usernameClient=melkishengue
+
+### onboard new client
+
+POST http://localhost:8082/api/v1/users/onboarding
+Content-Type: application/json
+Remote-Email: {{emailClient}}
+Remote-User: {{usernameClient}}
+
+{
+  "phone": "+04917643228710",
+  "role": "CLIENT",
+  "photoImageUrl": "https://images.pexels.com/photos/668927/pexels-photo-668927.jpeg"
+}
+
+
+### get my profile
+
+GET http://localhost:8082/api/v1/users/me
+Content-Type: application/json
+Remote-Email: {{emailClient}}
+Remote-User: {{usernameClient}}
+
+### update user info
+
+PUT http://localhost:8082/api/v1/users/me
+Content-Type: application/json
+Remote-Email: {{emailClient}}
+Remote-User: {{usernameClient}}
+
+{
+  "phone": "+0049123567892",
+  "name": "Melchisedek Hengue Touomo",
+  "photoImageUrl": "https://images.pexels.com/photos/668927/pexels-photo-668928.jpeg"
+}

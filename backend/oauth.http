@@ -1,0 +1,89 @@
+@zitadelDomain=sso.afribytes.com
+@clientId=352256217600557563
+@redirectUri=http://localhost:3000/callback
+@apiBaseUrl=http://localhost:8082/api/v1
+
+// The complete url to login: https://sso.afribytes.com/oauth/v2/authorize?client_id=352256217600557563&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid%20profile%20email%20offline_access&code_challenge=c-ehLNRsBGxjq95Ic6EWEVEpFQOsa8GDWcrjTyV1I6Y&code_challenge_method=S256
+
+@authCode=GUY4NCJIKN3tG7gdS8eNuSXux-7b2S4MI4kk19iRV394hA
+
+### Generate PKCE values dynamically
+# @name pkce
+{{
+  const crypto = require('crypto');
+  const verifier = crypto.randomBytes(32).toString('base64url');
+  const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+  
+  // Set variables for use in the request below
+  exports.codeVerifier = verifier;
+  exports.codeChallenge = challenge;
+}}
+
+### Step 1: Get authorization code (Placeholder request)
+GET https://{{zitadelDomain}}/oauth/v2/authorize?client_id={{clientId}}&redirect_uri={{redirectUri}}&response_type=code&scope=openid%20profile%20email%20offline_access&code_challenge={{codeChallenge}}&code_challenge_method=S256
+
+
+### Step 2: Exchange for token
+POST https://{{zitadelDomain}}/oauth/v2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code
+&client_id={{clientId}}
+&code={{authCode}}
+&redirect_uri={{redirectUri}}
+&code_verifier={{codeVerifier}}
+
+> {%
+    client.global.set("accessToken", response.body.access_token);
+    client.global.set("refreshToken", response.body.refresh_token);
+%}
+
+
+### validate id token
+
+POST http://localhost:8082/api/v1/users/sync
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjM0Nzk2NTg4MjMwOTM0NTc4NyIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiMzQ3OTY2NTA3NDI4NDEzOTQ3IiwiMzUyMjU2MjE3NjAwNTU3NTYzIiwiMzQ3OTY2MTA2NTE5OTk0ODc1Il0sImNsaWVudF9pZCI6IjM1MjI1NjIxNzYwMDU1NzU2MyIsImV4cCI6MTc2Njg4Mzg0OSwiZ3JvdXBzIjpbIlJFUE9SVEVSIiwiVklFV0VSIl0sImlhdCI6MTc2Njg0MDY0OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmFmcmlieXRlcy5jb20iLCJqdGkiOiJWMl8zNTI4OTk3NjE4MjY2OTM2MjctYXRfMzUyODk5NzYxODI2NzU5MTYzIiwibmJmIjoxNzY2ODQwNjQ5LCJzdWIiOiIzNDc5NjU4Nzk5OTQ2MTQyNjciLCJ1cm46eml0YWRlbDppYW06b3JnOnByb2plY3Q6MzQ3OTY2MTA2NTE5OTk0ODc1OnJvbGVzIjp7IlJFUE9SVEVSIjp7IjM0Nzk2NTg3OTk5NDA4OTk3OSI6InppdGFkZWwuYXV0aC5hZnJpYnl0ZXMuY29tIn0sIlZJRVdFUiI6eyIzNDc5NjU4Nzk5OTQwODk5NzkiOiJ6aXRhZGVsLmF1dGguYWZyaWJ5dGVzLmNvbSJ9fSwidXJuOnppdGFkZWw6aWFtOm9yZzpwcm9qZWN0OnJvbGVzIjp7IlJFUE9SVEVSIjp7IjM0Nzk2NTg3OTk5NDA4OTk3OSI6InppdGFkZWwuYXV0aC5hZnJpYnl0ZXMuY29tIn0sIlZJRVdFUiI6eyIzNDc5NjU4Nzk5OTQwODk5NzkiOiJ6aXRhZGVsLmF1dGguYWZyaWJ5dGVzLmNvbSJ9fX0.Nd_LM5c6Ls2THps8qpp7dEeroWEGgPzQMtEw6WugLsLSOAFApTGJSmpkP6TPASEOt_MkqgRyL6cBT1zVLjC4bIPgaJ5RpUHFZLu3sfoF3tVd_Yz_lNxGIhkogtBsYvyXGk1TidhQJjdHQAb0SzNLI7Xp19a4x3_i40RQwlKLSso7itfU5_f_no81T-3xog0wxHNzvvJs8OlemMDVhlDDZizCThpOumMqNyk0uyMPBH123llyWbwtu3ugdCQYSciu2sTtclLcnLPGV04GwUoY-GSNZKYksPIKghb3F2-ww391tEke7DV0v5UImEr9AxqF6bwZglz3ftF9iIPOfr5DPg
+
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjM0Nzk2NTg4MjMwOTM0NTc4NyIsInR5cCI6IkpXVCJ9.eyJhbXIiOlsicHdkIl0sImF0X2hhc2giOiJLVk8xQ2xDTDVDdjRoZllKR2NCcFVnIiwiYXVkIjpbIjM0Nzk2NjUwNzQyODQxMzk0NyIsIjM1MjI1NjIxNzYwMDU1NzU2MyIsIjM0Nzk2NjEwNjUxOTk5NDg3NSJdLCJhdXRoX3RpbWUiOjE3NjY0NTc0ODgsImF6cCI6IjM1MjI1NjIxNzYwMDU1NzU2MyIsImNsaWVudF9pZCI6IjM1MjI1NjIxNzYwMDU1NzU2MyIsImVtYWlsIjoiYWRtaW5AYWZyaWJ5dGVzLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE3NjY4ODM4NDksImZhbWlseV9uYW1lIjoiQWRtaW4iLCJnaXZlbl9uYW1lIjoiWklUQURFTCIsImdyb3VwcyI6WyJSRVBPUlRFUiIsIlZJRVdFUiJdLCJpYXQiOjE3NjY4NDA2NDksImlzcyI6Imh0dHBzOi8vYXV0aC5hZnJpYnl0ZXMuY29tIiwibG9jYWxlIjoiZW4iLCJuYW1lIjoiWklUQURFTCBBZG1pbiIsIm5vbmNlIjoiTHkyNkdhbWplWS11bjE1aDdHTDgzY1dyM3VIbUhMbC02b1gyNFNGSUVxMCIsInByZWZlcnJlZF91c2VybmFtZSI6ImFkbWluQHppdGFkZWwuYXV0aC5hZnJpYnl0ZXMuY29tIiwic2lkIjoiVjFfMzUyMjU2OTI0OTc4MjUwMjM1Iiwic3ViIjoiMzQ3OTY1ODc5OTk0NjE0MjY3IiwidXBkYXRlZF9hdCI6MTc2Mzg5OTgyOSwidXJuOnppdGFkZWw6aWFtOm9yZzpwcm9qZWN0OjM0Nzk2NjEwNjUxOTk5NDg3NTpyb2xlcyI6eyJSRVBPUlRFUiI6eyIzNDc5NjU4Nzk5OTQwODk5NzkiOiJ6aXRhZGVsLmF1dGguYWZyaWJ5dGVzLmNvbSJ9LCJWSUVXRVIiOnsiMzQ3OTY1ODc5OTk0MDg5OTc5Ijoieml0YWRlbC5hdXRoLmFmcmlieXRlcy5jb20ifX0sInVybjp6aXRhZGVsOmlhbTpvcmc6cHJvamVjdDpyb2xlcyI6eyJSRVBPUlRFUiI6eyIzNDc5NjU4Nzk5OTQwODk5NzkiOiJ6aXRhZGVsLmF1dGguYWZyaWJ5dGVzLmNvbSJ9LCJWSUVXRVIiOnsiMzQ3OTY1ODc5OTk0MDg5OTc5Ijoieml0YWRlbC5hdXRoLmFmcmlieXRlcy5jb20ifX19.F7K6tTjUdaxsP7plV5xPgESp09SYCBjsSENLE8PMyNMcbi1FJKK2bZHNixzv7YGPe4XRw2x17R2bDiRaaZG_-TMa84s7LCC8JQBKeHd47_zBXoR-A6cCu2h3ekoCj8-Ha8_41SYytBLvaeCAowmbnhpL20J3flCyH4gtpdL4ld1O2TcZ-VUI6UreBMvH-dLQU6Qu2zePpPTB0p7RRo-taVwfeqakQze40qBhEMuk86c5AdYQuspkJ8vmgPN2QWPtc-XxlWgiUeez4su8F_JqNDDFBDz4RVE7D39H3HRI4Ptw_KHfTEIL5Y0toGDxLzactoM9UfepnAmshiN4rFQytg"
+}
+
+### Example response from Zitadel (id token)
+{
+  "at_hash": "BZZvFSdBJHNbzcDm2dj5ZA",
+  "aud": [
+    "347966507428413947",
+    "352256217600557563",
+    "347966106519994875"
+  ],
+  "auth_time": 1766775090,
+  "azp": "352256217600557563",
+  "client_id": "352256217600557563",
+  "email": "henguemelkispro@yahoo.com",
+  "email_verified": true,
+  "exp": 1766876968,
+  "family_name": "Fosso",
+  "given_name": "Ange",
+  "groups": [
+    "REPORTER"
+  ],
+  "iat": 1766833768,
+  "iss": "https://sso.afribytes.com",
+  "locale": null,
+  "name": "henguemelkispro@yahoo.com",
+  "preferred_username": "melkishengue",
+  "sid": "V1_351151364459463163",
+  "sub": "347990130570559995",
+  "updated_at": 1763914281,
+  "urn:zitadel:iam:org:project:347966106519994875:roles": {
+    "REPORTER": {
+      "347965879994089979": "zitadel.sso.afribytes.com"
+    }
+  },
+  "urn:zitadel:iam:org:project:roles": {
+    "REPORTER": {
+      "347965879994089979": "zitadel.sso.afribytes.com"
+    }
+  }
+}
