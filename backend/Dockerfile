@@ -1,11 +1,11 @@
 # ---- Build stage ----
 FROM eclipse-temurin:17-jdk-alpine AS builder
 WORKDIR /app
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
+COPY backend/mvnw .
+COPY backend/.mvn .mvn
+COPY backend/pom.xml .
 RUN ./mvnw dependency:go-offline -q
-COPY src src
+COPY backend/src src
 RUN ./mvnw clean package -DskipTests -q
 
 # ---- Runtime stage ----
