@@ -18,6 +18,7 @@ const streami18n = new Streami18n({
 interface ChatContextType {
   isConnected: boolean;
   chatClient: StreamChat | null;
+  userId: string | null;
   error: string | null;
 }
 
@@ -65,7 +66,7 @@ const ChatProviderInner: React.FC<{
     // Render children without chat wrapper while client initializes
     return (
       <ChatContext.Provider
-        value={{ isConnected: false, chatClient: null, error: null }}
+        value={{ isConnected: false, chatClient: null, userId: null, error: null }}
       >
         {children}
       </ChatContext.Provider>
@@ -74,7 +75,7 @@ const ChatProviderInner: React.FC<{
 
   return (
     <ChatContext.Provider
-      value={{ isConnected: true, chatClient, error: null }}
+      value={{ isConnected: true, chatClient, userId: chatData.userId, error: null }}
     >
       <OverlayProvider i18nInstance={streami18n} value={{ style: theme }}>
         <Chat client={chatClient} i18nInstance={streami18n}>
@@ -118,7 +119,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   if (!chatData || !user || error) {
     return (
       <ChatContext.Provider
-        value={{ isConnected: false, chatClient: null, error }}
+        value={{ isConnected: false, chatClient: null, userId: null, error }}
       >
         {children}
       </ChatContext.Provider>

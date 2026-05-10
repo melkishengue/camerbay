@@ -27,7 +27,7 @@ interface UseChannelByIdReturn {
 export const useChannelById = (
   channelId?: string | undefined
 ): UseChannelByIdReturn => {
-  const { chatClient } = useChat();
+  const { chatClient, userId: currentUserId } = useChat();
   const [channel, setChannel] = useState<Channel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -38,7 +38,7 @@ export const useChannelById = (
 
   useEffect(() => {
     const initChannel = async () => {
-      if (!chatClient || !channelId) {
+      if (!chatClient || !channelId || !currentUserId) {
         setIsLoading(false);
         return;
       }
@@ -54,7 +54,10 @@ export const useChannelById = (
         setChannel(newChannel);
 
         // Get display info (name and image)
-        const info = getChannelDisplayInfo(newChannel, chatClient.userID!);
+        const members = Object.values(newChannel.state.members);
+        console.log("[ChannelById] currentUserId:", currentUserId);
+        console.log("[ChannelById] members:", members.map(m => ({ user_id: m.user_id, name: m.user?.name })));
+        const info = getChannelDisplayInfo(newChannel, currentUserId ?? "");
         setDisplayInfo(info);
       } catch (err) {
 
@@ -71,7 +74,7 @@ export const useChannelById = (
     return () => {
       channel?.stopWatching();
     };
-  }, [channelId, chatClient]);
+  }, [channelId, chatClient, currentUserId]);
 
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
 
@@ -121,7 +124,20 @@ const getChannelDisplayInfo = (
   channel: Channel,
   currentUserId: string
 ): ChannelDisplayInfo => {
-  // If channel has an explicit name (for group chats)
+  const members = Object.values(channel.state.members);
+
+  // For DMs (2 members), always use the other member's info
+  if (members.length <= 2) {
+    const otherMember = members.find(
+      (member) => member.user_id !== currentUserId
+    );
+    return {
+      name: otherMember?.user?.name || otherMember?.user_id || "Utilisateur",
+      image: otherMember?.user?.image as string | undefined
+    };
+  }
+
+  // For group chats, use channel name
   if (channel.data && "name" in channel?.data && channel.data?.name) {
     return {
       name: channel.data.name as string,
@@ -129,12 +145,10 @@ const getChannelDisplayInfo = (
     };
   }
 
-  // For DMs, get the other member
-  const members = Object.values(channel.state.members);
+  // Fallback for group chats without name
   const otherMember = members.find(
     (member) => member.user_id !== currentUserId
   );
-
   return {
     name: otherMember?.user?.name || otherMember?.user_id || "Utilisateur",
     image: otherMember?.user?.image as string | undefined

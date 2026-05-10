@@ -40,6 +40,8 @@ public class ChatController {
 
     AuthUser currentUser = authFacade.getCurrentUser();
 
+    log.info("current user: {}", currentUser);
+
     CreateChannelResponse response = chatService.createOrGetChannel(
         currentUser,
         request.providerId());
