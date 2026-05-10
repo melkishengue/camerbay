@@ -39,6 +39,7 @@ export interface UserInfo {
 export interface BackendUser {
   id: string;
   username: string;
+  name?: string;
   businessName?: string;
   role: string;
   phone: string;

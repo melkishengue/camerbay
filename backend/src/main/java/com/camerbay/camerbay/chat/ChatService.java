@@ -37,6 +37,7 @@ public class ChatService {
   public ChatTokenResponse generateToken(AuthUser user) {
     configureStreamCredentials();
     UserResponse userFromDB = userService.findByEmail(user.getEmail());
+    log.info("[Stream] generateToken → oauthEmail={}, dbUserId={}, dbUsername={}", user.getEmail(), userFromDB.id(), userFromDB.username());
     String token = User.createToken(userFromDB.id().toString(), null, null);
 
     return new ChatTokenResponse(token, streamApiKey, userFromDB.id().toString());
@@ -52,7 +53,7 @@ public class ChatService {
     log.info("Channel: {}", channelId);
 
     try {
-      createStreamChannel(currentUser, providerId, channelId);
+      createStreamChannel(userFromDB, providerId, channelId);
 
       log.info("Channel created/retrieved: {} for users {} and {}",
           channelId, userFromDB.id().toString(), providerId);
@@ -69,14 +70,18 @@ public class ChatService {
     }
   }
 
-  private void createStreamChannel(AuthUser currentUser, String providerId, String channelId)
+  private void createStreamChannel(UserResponse userFromDB, String providerId, String channelId)
       throws StreamException {
 
-    UserResponse userFromDB = userService.findByEmail(currentUser.getEmail());
+    String displayName = userFromDB.name() != null ? userFromDB.name() : userFromDB.username();
+
+    log.info("[Stream] channelCreator → id={}, name={}", userFromDB.id(), displayName);
+    log.info("[Stream] hostUser    → userId={}", userFromDB.id());
+    log.info("[Stream] guestUser   → userId={}", providerId);
 
     var channelCreator = UserRequestObject.builder()
         .id(userFromDB.id().toString())
-        .name(currentUser.getName())
+        .name(displayName)
         .build();
 
     var hostUser = ChannelMemberRequestObject.builder()

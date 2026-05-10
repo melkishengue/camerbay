@@ -129,7 +129,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <ChatProviderInner
       chatData={chatData}
-      userName={user.username}
+      userName={user.name || user.businessName || user.username}
       userImage={user.profilePhotoUrl}
       onError={setError}
     >

@@ -20,6 +20,8 @@ export default function ChatScreen() {
   const backgroundColor = useThemeColor("background");
   const headerHeight = useHeaderHeight();
 
+  console.log("😞", displayInfo);
+
   useEffect(() => {
     if (displayInfo) {
       navigation.setOptions({

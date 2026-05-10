@@ -56,11 +56,13 @@ export const useChannelById = (
         // Get display info (name and image)
         const members = Object.values(newChannel.state.members);
         console.log("[ChannelById] currentUserId:", currentUserId);
-        console.log("[ChannelById] members:", members.map(m => ({ user_id: m.user_id, name: m.user?.name })));
+        console.log(
+          "[ChannelById] members:",
+          members.map((m) => ({ user_id: m.user_id, name: m.user?.name }))
+        );
         const info = getChannelDisplayInfo(newChannel, currentUserId ?? "");
         setDisplayInfo(info);
       } catch (err) {
-
         setError(
           err instanceof Error ? err : new Error("Failed to load channel")
         );
@@ -98,7 +100,6 @@ export const useChannelById = (
         params: { channelId }
       });
     } catch (error) {
-
       if (isAxiosError(error)) {
         const message = error.response?.data?.message || "Failed to start chat";
         Alert.alert("Error", message);
@@ -125,6 +126,8 @@ const getChannelDisplayInfo = (
   currentUserId: string
 ): ChannelDisplayInfo => {
   const members = Object.values(channel.state.members);
+
+  console.log("👯‍♂️", JSON.stringify(members, null, 2), currentUserId);
 
   // For DMs (2 members), always use the other member's info
   if (members.length <= 2) {
