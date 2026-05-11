@@ -10,20 +10,14 @@
       "ios": {
         "simulator": false
       },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://camerbay.melkishengue.com",
-        "EXPO_PUBLIC_OAUTH_ISSUER": "auth.afribytes.com"
-      }
+      "env": {}
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false
       },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://camerbay.melkishengue.com",
-        "EXPO_PUBLIC_OAUTH_ISSUER": "auth.afribytes.com"
-      }
+      "env": {}
     },
     "production": {
       "autoIncrement": true
