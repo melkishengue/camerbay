@@ -1,16 +1,21 @@
+import { IconTextField } from "@/components/iconTextField";
+import { SectionBlock } from "@/components/sectionBlock";
 import { OnboardingFormData } from "@/hooks/useOnboarding";
-import { Ionicons } from "@expo/vector-icons";
-import { Button, TextField, cn, useThemeColor } from "heroui-native";
+import { Button, cn, TextField, useThemeColor } from "heroui-native";
 import {
+  AlignLeft,
+  Camera,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Phone,
   Sparkles,
-  Upload
+  Upload,
+  User
 } from "lucide-react-native";
 import React from "react";
 import { Control, Controller, FieldErrors } from "react-hook-form";
-import { Image, Text, TouchableOpacity, View } from "react-native";
-import { withUniwind } from "uniwind";
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from "react-native";
 
 interface BasicInfoStepProps {
   control: Control<OnboardingFormData>;
@@ -18,115 +23,102 @@ interface BasicInfoStepProps {
 }
 
 export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
-  const StyledIonicons = withUniwind(Ionicons);
+  const [accentColor] = useThemeColor(["accent"]);
 
   return (
-    <View className="gap-5 px-4">
-      {/* Header */}
-      <View className="gap-4 items-center pt-2">
-        {/* <View className="w-[90px] h-[90px] bg-green-100 rounded-full items-center justify-center border-3 border-green-300">
-          <Text className="text-5xl">👋</Text>
-        </View> */}
-        <View className="gap-2 items-center">
-          {/* <Text className="text-3xl font-bold text-foreground text-center">
-            Bienvenue !
-          </Text> */}
-          {/* <Text className="text-muted text-base text-center max-w-[300px] leading-6">
-            Parlez-nous de vous pour commencer
-          </Text> */}
+    <View style={{ gap: 16, paddingHorizontal: 16 }}>
+      {/* Welcome header */}
+      <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 4, gap: 8 }}>
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: accentColor + "18",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 2,
+            borderColor: accentColor + "30"
+          }}
+        >
+          <User size={28} color={accentColor} strokeWidth={1.75} />
         </View>
+        <Text
+          className="text-foreground text-center"
+          style={{ fontSize: 20, fontFamily: "Inter_700Bold", marginTop: 4 }}
+        >
+          Informations personnelles
+        </Text>
+        <Text
+          className="text-muted text-center"
+          style={{ fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, maxWidth: 280 }}
+        >
+          Ces informations seront visibles sur votre profil
+        </Text>
       </View>
 
-      <View className="gap-3">
-        <View className="gap-2">
-          <Controller
-            control={control}
-            name="phone"
-            rules={{
-              pattern: {
-                value: /^[+]?[\d\s-()]+$/,
-                message: "Format de téléphone invalide"
-              }
-            }}
-            render={({ field: { onChange, value } }) => (
-              <TextField isInvalid={!!errors.phone}>
-                <TextField.Label>Numéro de téléphone</TextField.Label>
-                <View className="w-full flex-row items-center">
-                  <TextField.Input
-                    placeholder="+49 XXX XXX XXX XXX"
-                    value={value}
-                    onChangeText={onChange}
-                    keyboardType="phone-pad"
-                    className="flex-1 px-10"
-                  />
-                  <StyledIonicons
-                    name="call"
-                    size={16}
-                    className="absolute left-3.5 text-muted"
-                    pointerEvents="none"
-                  />
-                </View>
-                {errors.phone && (
-                  <TextField.ErrorMessage>
-                    {errors.phone.message}
-                  </TextField.ErrorMessage>
-                )}
-              </TextField>
-            )}
-          />
-        </View>
+      {/* Contact section */}
+      <SectionBlock
+        title="Contact"
+        icon={<Phone size={11} color={accentColor} strokeWidth={2.5} />}
+      >
+        <Controller
+          control={control}
+          name="phone"
+          rules={{
+            pattern: {
+              value: /^[+]?[\d\s-()]+$/,
+              message: "Format de téléphone invalide"
+            }
+          }}
+          render={({ field: { onChange, value } }) => (
+            <IconTextField
+              label="Numéro de téléphone"
+              value={value ?? ""}
+              onChangeText={onChange}
+              placeholder="+49 XXX XXX XXX"
+              keyboardType="phone-pad"
+              error={errors.phone?.message}
+              icon={<Phone size={16} color="#71717a" strokeWidth={1.75} />}
+            />
+          )}
+        />
+      </SectionBlock>
 
-        <View className="gap-2">
+      {/* Profil section */}
+      <SectionBlock
+        title="Profil"
+        icon={<User size={11} color={accentColor} strokeWidth={2.5} />}
+      >
+        <View style={{ gap: 12 }}>
           <Controller
             control={control}
             name="name"
             render={({ field: { onChange, value } }) => (
-              <TextField>
-                <TextField.Label>Nom</TextField.Label>
-                <View className="w-full flex-row items-center">
-                  <TextField.Input
-                    placeholder="Jean Dupont"
-                    value={value}
-                    onChangeText={onChange}
-                    className="flex-1 px-10"
-                  />
-                  <StyledIonicons
-                    name="person-circle"
-                    size={16}
-                    className="absolute left-3.5 text-muted"
-                    pointerEvents="none"
-                  />
-                </View>
-              </TextField>
+              <IconTextField
+                label="Nom"
+                value={value ?? ""}
+                onChangeText={onChange}
+                placeholder="Jean Dupont"
+                icon={<User size={16} color="#71717a" strokeWidth={1.75} />}
+              />
             )}
           />
-        </View>
-        <View className="gap-2">
+
           <Controller
             control={control}
             name="businessName"
             render={({ field: { onChange, value } }) => (
-              <TextField>
-                <TextField.Label>Nom de l&apos;entreprise</TextField.Label>
-                <View className="w-full flex-row items-center">
-                  <TextField.Input
-                    placeholder="Salon de beauté Afro"
-                    value={value}
-                    onChangeText={onChange}
-                    className="flex-1 px-10"
-                  />
-                  <StyledIonicons
-                    name="business"
-                    size={16}
-                    className="absolute left-3.5 text-muted"
-                    pointerEvents="none"
-                  />
-                </View>
-              </TextField>
+              <IconTextField
+                label="Nom de l'entreprise"
+                value={value ?? ""}
+                onChangeText={onChange}
+                placeholder="Salon de beauté Afro"
+                icon={<AlignLeft size={16} color="#71717a" strokeWidth={1.75} />}
+              />
             )}
           />
-        </View>
-        <View className="gap-2">
+
           <Controller
             control={control}
             name="description"
@@ -149,10 +141,11 @@ export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
             )}
           />
         </View>
-      </View>
+      </SectionBlock>
     </View>
   );
 }
+
 
 interface OnboardingNavigationProps {
   currentStepIndex: number;
@@ -171,11 +164,14 @@ export function OnboardingNavigation({
   onBack,
   onNext
 }: OnboardingNavigationProps) {
-  const [themeColorAccentForeground] = useThemeColor(["accent-foreground"]);
+  const [accentForeground, accentColor] = useThemeColor([
+    "accent-foreground",
+    "accent"
+  ]);
 
   return (
-    <View className="p-4 border-t border-border bg-background gap-3">
-      <View className="flex-row gap-3">
+    <View className="border-t border-border bg-background" style={{ padding: 16, gap: 12 }}>
+      <View style={{ flexDirection: "row", gap: 12 }}>
         {currentStepIndex > 0 && (
           <Button
             variant="secondary"
@@ -183,8 +179,10 @@ export function OnboardingNavigation({
             isDisabled={isUploading}
             className="flex-1"
           >
-            <ChevronLeft size={18} color="#0e7fe9" />
-            <Button.Label>Retour</Button.Label>
+            <ChevronLeft size={18} color={accentColor} />
+            <Button.Label style={{ fontFamily: "Inter_600SemiBold" }}>
+              Retour
+            </Button.Label>
           </Button>
         )}
 
@@ -197,18 +195,27 @@ export function OnboardingNavigation({
             currentStepIndex === 0 ? "flex-1" : "flex-[2]"
           )}
         >
-          {isLastStep && (
-            <Sparkles size={18} color={themeColorAccentForeground} />
-          )}
-          <Button.Label>
-            {isUploading
-              ? "Téléchargement..."
-              : isLastStep
-                ? "Terminer l'inscription"
-                : "Continuer"}
-          </Button.Label>
-          {!isLastStep && (
-            <ChevronRight size={18} color={themeColorAccentForeground} />
+          {isUploading ? (
+            <>
+              <ActivityIndicator size="small" color={accentForeground} />
+              <Button.Label style={{ fontFamily: "Inter_600SemiBold" }}>
+                Téléchargement...
+              </Button.Label>
+            </>
+          ) : isLastStep ? (
+            <>
+              <Sparkles size={18} color={accentForeground} />
+              <Button.Label style={{ fontFamily: "Inter_700Bold" }}>
+                Terminer l&apos;inscription
+              </Button.Label>
+            </>
+          ) : (
+            <>
+              <Button.Label style={{ fontFamily: "Inter_600SemiBold" }}>
+                Continuer
+              </Button.Label>
+              <ChevronRight size={18} color={accentForeground} />
+            </>
           )}
         </Button>
       </View>
@@ -227,84 +234,169 @@ export function PhotoUploadStep({
   isUploading,
   onPickImage
 }: PhotoUploadStepProps) {
+  const [accentColor] = useThemeColor(["accent"]);
+
   return (
-    <View className="gap-5 px-4">
-      {/* <View className="flex-row items-center gap-3">
-        <View className="w-[50px] h-[50px] bg-yellow-100 rounded-full items-center justify-center">
-          <Camera size={24} color="#f59e0b" />
+    <View style={{ gap: 16, paddingHorizontal: 16 }}>
+      {/* Header */}
+      <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 4, gap: 8 }}>
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: accentColor + "18",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 2,
+            borderColor: accentColor + "30"
+          }}
+        >
+          <Camera size={28} color={accentColor} strokeWidth={1.75} />
         </View>
-        <View className="flex-1">
-          <Text className="text-2xl font-bold text-foreground">
-            Photo de profil
-          </Text>
-          <Text className="text-muted text-sm mt-1">
-            Mettez un visage sur votre profil
-          </Text>
-        </View>
-      </View> */}
+        <Text
+          className="text-foreground text-center"
+          style={{ fontSize: 20, fontFamily: "Inter_700Bold", marginTop: 4 }}
+        >
+          Photo de profil
+        </Text>
+        <Text
+          className="text-muted text-center"
+          style={{ fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, maxWidth: 280 }}
+        >
+          Une photo aide les clients à vous reconnaître
+        </Text>
+      </View>
 
-      <View className="items-center gap-5 py-4">
-        {localImageUri ? (
-          <View className="gap-4 items-center">
-            <View>
-              <Image
-                source={{ uri: localImageUri }}
-                style={{ width: 180, height: 180, borderRadius: 90 }}
-              />
-            </View>
-
-            <View className="items-center gap-2">
-              <Text className="text-base font-bold text-success">
-                Photo ajoutée avec succès !
-              </Text>
-              <Text className="text-sm text-muted">
-                Vous pouvez la modifier si besoin
-              </Text>
-            </View>
-
-            <Button
-              size="lg"
-              variant="primary"
-              onPress={onPickImage}
-              isDisabled={isUploading}
-              className="h-12"
-            >
-              <Upload size={18} />
-              <Button.Label className="font-semibold ml-2">
-                Changer la photo
-              </Button.Label>
-            </Button>
-          </View>
-        ) : (
-          <View className="gap-4 w-full items-center">
-            <TouchableOpacity
-              onPress={onPickImage}
-              activeOpacity={0.8}
-              className="w-full max-w-[300px]"
-            >
-              <View className="h-[240px] rounded-2xl border-3 border-dashed border-success/50 bg-success/5 items-center justify-center">
-                <View className="items-center gap-3">
-                  <View className="w-20 h-20 bg-success/20 rounded-full items-center justify-center">
-                    <Upload size={36} color="#22c55e" />
+      <SectionBlock
+        title="Photo"
+        icon={<Camera size={11} color={accentColor} strokeWidth={2.5} />}
+      >
+        <View style={{ alignItems: "center", gap: 16 }}>
+          {localImageUri ? (
+            /* Image selected */
+            <View style={{ alignItems: "center", gap: 16 }}>
+              <View
+                style={{
+                  position: "relative",
+                  borderRadius: 100,
+                  borderWidth: 3,
+                  borderColor: accentColor + "40",
+                  padding: 3
+                }}
+              >
+                <Image
+                  source={{ uri: localImageUri }}
+                  style={{ width: 160, height: 160, borderRadius: 80 }}
+                />
+                {isUploading && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 3,
+                      left: 3,
+                      width: 160,
+                      height: 160,
+                      borderRadius: 80,
+                      backgroundColor: "rgba(0,0,0,0.45)",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <ActivityIndicator color="white" size="large" />
                   </View>
-                  <View className="items-center gap-1">
-                    <Text className="font-bold text-lg text-foreground">
-                      Ajouter une photo
-                    </Text>
-                    <Text className="text-sm text-muted">
-                      Cliquez pour sélectionner
-                    </Text>
+                )}
+              </View>
+
+              <View style={{ alignItems: "center", gap: 4 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <CheckCircle2 size={16} color={accentColor} strokeWidth={2} />
+                  <Text
+                    className="text-foreground"
+                    style={{ fontSize: 14, fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Photo ajoutée
+                  </Text>
+                </View>
+                <Text
+                  className="text-muted"
+                  style={{ fontSize: 12, fontFamily: "Inter_400Regular" }}
+                >
+                  Vous pouvez la modifier si besoin
+                </Text>
+              </View>
+
+              <Button
+                variant="secondary"
+                onPress={onPickImage}
+                isDisabled={isUploading}
+              >
+                <Upload size={16} color={accentColor} strokeWidth={2} />
+                <Button.Label style={{ fontFamily: "Inter_600SemiBold" }}>
+                  Changer la photo
+                </Button.Label>
+              </Button>
+            </View>
+          ) : (
+            /* No image yet */
+            <View style={{ width: "100%", gap: 12, alignItems: "center" }}>
+              <TouchableOpacity
+                onPress={onPickImage}
+                activeOpacity={0.75}
+                style={{ width: "100%", maxWidth: 300 }}
+              >
+                <View
+                  className="border-border bg-surface"
+                  style={{
+                    height: 220,
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderStyle: "dashed",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <View style={{ alignItems: "center", gap: 12 }}>
+                    <View
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 36,
+                        backgroundColor: accentColor + "18",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      <Upload size={32} color={accentColor} strokeWidth={1.75} />
+                    </View>
+                    <View style={{ alignItems: "center", gap: 4 }}>
+                      <Text
+                        className="text-foreground"
+                        style={{ fontSize: 15, fontFamily: "Inter_600SemiBold" }}
+                      >
+                        Ajouter une photo
+                      </Text>
+                      <Text
+                        className="text-muted"
+                        style={{ fontSize: 13, fontFamily: "Inter_400Regular" }}
+                      >
+                        Appuyez pour sélectionner
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            <Text className="text-xs text-muted text-center max-w-[280px]">
-              Format JPG, PNG ou WEBP • Max 5MB
-            </Text>
-          </View>
-        )}
-      </View>
+              <Text
+                className="text-muted text-center"
+                style={{ fontSize: 11, fontFamily: "Inter_400Regular" }}
+              >
+                Format JPG, PNG ou WEBP · Max 5 MB
+              </Text>
+            </View>
+          )}
+        </View>
+      </SectionBlock>
     </View>
   );
 }
@@ -320,32 +412,88 @@ export function OnboardingProgress({
   totalSteps,
   progress
 }: OnboardingProgressProps) {
-  return (
-    <View className="pt-8 px-4 pb-5 bg-background">
-      <View className="gap-3">
-        <View className="flex-row justify-between items-center">
-          <View className="flex-row items-center gap-2">
-            <View className="w-2 h-2 bg-success rounded-full" />
-            <Text className="text-sm text-foreground font-bold">
-              Étape {currentStep} / {totalSteps}
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <Text className="text-xs text-muted">Progression</Text>
-            <View className="px-2.5 py-1 bg-success rounded">
-              <Text className="text-xs text-white font-bold">
-                {Math.round(progress)}%
-              </Text>
-            </View>
-          </View>
-        </View>
+  const [accentColor] = useThemeColor(["accent"]);
 
-        <View className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <View
-            className="h-full bg-success rounded-full"
-            style={{ width: `${progress}%` }}
-          />
-        </View>
+  const stepLabels = ["Informations", "Photo"];
+
+  return (
+    <View
+      className="bg-background border-b border-border"
+      style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16 }}
+    >
+      {/* Step dots */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        {Array.from({ length: totalSteps }).map((_, i) => {
+          const stepNum = i + 1;
+          const isActive = stepNum === currentStep;
+          const isDone = stepNum < currentStep;
+
+          return (
+            <React.Fragment key={i}>
+              <View style={{ alignItems: "center", gap: 4 }}>
+                <View
+                  style={{
+                    width: isActive ? 28 : 22,
+                    height: isActive ? 28 : 22,
+                    borderRadius: 14,
+                    backgroundColor: isDone || isActive ? accentColor : accentColor + "20",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  {isDone ? (
+                    <CheckCircle2 size={13} color="white" strokeWidth={2.5} />
+                  ) : (
+                    <Text
+                      style={{
+                        fontSize: isActive ? 11 : 10,
+                        fontFamily: "Inter_700Bold",
+                        color: isActive ? "white" : accentColor
+                      }}
+                    >
+                      {stepNum}
+                    </Text>
+                  )}
+                </View>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontFamily: isActive ? "Inter_600SemiBold" : "Inter_400Regular",
+                    color: isActive ? accentColor : "#71717a"
+                  }}
+                >
+                  {stepLabels[i]}
+                </Text>
+              </View>
+
+              {i < totalSteps - 1 && (
+                <View
+                  className="flex-1"
+                  style={{
+                    height: 1.5,
+                    backgroundColor: currentStep > stepNum ? accentColor : accentColor + "25",
+                    marginBottom: 16
+                  }}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </View>
+
+      {/* Progress bar */}
+      <View
+        className="bg-border"
+        style={{ height: 3, borderRadius: 99, overflow: "hidden" }}
+      >
+        <View
+          style={{
+            height: "100%",
+            width: `${progress}%`,
+            backgroundColor: accentColor,
+            borderRadius: 99
+          }}
+        />
       </View>
     </View>
   );

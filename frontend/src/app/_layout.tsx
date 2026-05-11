@@ -1,5 +1,9 @@
+import { initSentry, Sentry } from "@/lib/sentry";
 import { queryClient } from "@/lib/queryClient";
+import { ErrorFallback } from "@/components/ErrorFallback";
 import { QueryClientProvider } from "@tanstack/react-query";
+
+initSentry();
 import { AuthProvider } from "@/hooks/useAuth";
 import { ChatProvider } from "@/hooks/useChat";
 import { NotificationCenterProvider } from "@/hooks/useNotificationCenter";
@@ -136,7 +140,7 @@ function AppContent() {
   );
 }
 
-export default function Layout() {
+function Layout() {
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -149,15 +153,23 @@ export default function Layout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={styles.root}>
-        <AppThemeProvider>
-          <AppContent />
-        </AppThemeProvider>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <Sentry.ErrorBoundary
+      fallback={({ error, resetError }) => (
+        <ErrorFallback error={error as Error} resetError={resetError} />
+      )}
+    >
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={styles.root}>
+          <AppThemeProvider>
+            <AppContent />
+          </AppThemeProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </Sentry.ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(Layout);
 
 const styles = StyleSheet.create({
   root: {

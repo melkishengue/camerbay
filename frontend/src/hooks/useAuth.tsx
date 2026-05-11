@@ -1,3 +1,4 @@
+import { Sentry } from "@/lib/sentry";
 import { AxiosError } from "axios";
 import * as AuthSession from "expo-auth-session";
 import * as Notifications from "expo-notifications";
@@ -106,20 +107,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     idToken: string,
     accessToken: string
   ): Promise<BackendUser> => {
+    Sentry.addBreadcrumb({ category: "auth", message: "Syncing user with backend", level: "info" });
     try {
-      // 1. Sync with backend
       await apiClient.postWithToken(
         "/api/v1/users/sync",
         { idToken },
         accessToken
       );
 
-      // 2. Fetch full user details
+      Sentry.addBreadcrumb({ category: "auth", message: "Backend sync OK, fetching user", level: "info" });
       const userResponse = await apiClient.get<BackendUser>("/api/v1/users/me");
 
       setUser(userResponse.data);
+      Sentry.setUser({ id: userResponse.data.id, email: userResponse.data.email, username: userResponse.data.username });
       return userResponse.data;
     } catch (e) {
+      Sentry.captureException(e, { tags: { auth_step: "backend_sync" } });
       throw e;
     }
   };
@@ -136,15 +139,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleResponse = async () => {
-      console.log("😦", response);
+      Sentry.addBreadcrumb({
+        category: "auth",
+        message: `OAuth response received: type=${response?.type ?? "null"}`,
+        level: "info",
+        data: { response_type: response?.type ?? null, request_ready: !!request }
+      });
+
       if (response?.type === "success" && discovery) {
         try {
           setLoading(true);
           const { code } = response.params;
 
-          console.log("👁", code);
+          Sentry.addBreadcrumb({ category: "auth", message: "Exchanging authorization code for tokens", level: "info" });
 
-          // Exchange code for tokens
           const tokenResult = await AuthSession.exchangeCodeAsync(
             {
               clientId: authConfig.clientId,
@@ -156,7 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
             discovery
           );
-          console.log("🧣", tokenResult);
+
+          Sentry.addBreadcrumb({ category: "auth", message: "Token exchange successful", level: "info" });
 
           const tokens: TokenResult = {
             accessToken: tokenResult.accessToken,
@@ -167,17 +176,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             issuedAt: tokenResult.issuedAt
           };
 
-          // Decode user info from ID token
           const decodedUser: UserInfo = jwtDecode(tokens.idToken);
           setOidcUser(decodedUser);
           setTokens(tokens);
 
-          console.log("🕵️‍♂️", decodedUser);
-
-          // Save tokens securely
           await SecureStore.setItemAsync("auth_tokens", JSON.stringify(tokens));
 
-          // Sync with backend and fetch full user
           const backendUser = await syncAndFetchUser(
             tokens.idToken,
             tokens.accessToken
@@ -192,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             onActionPress: ({ hide }) => hide()
           });
         } catch (err) {
+          Sentry.captureException(err, { tags: { auth_step: "token_exchange_or_sync" } });
           setError(
             err instanceof Error ? err : new Error("Authentication failed")
           );
@@ -202,9 +207,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         }
       } else if (response?.type === "error") {
-        setError(new Error(response.error?.message || "Authentication failed"));
+        const errMsg = response.error?.message || "Authentication failed";
+        Sentry.captureException(new Error(errMsg), {
+          tags: { auth_step: "oauth_response" },
+          extra: { oauth_error: response.error }
+        });
+        setError(new Error(errMsg));
         setLoading(false);
       } else if (response?.type === "cancel" || response?.type === "dismiss") {
+        Sentry.addBreadcrumb({
+          category: "auth",
+          message: `OAuth flow ${response.type} by user`,
+          level: "info"
+        });
         setLoading(false);
       }
     };
@@ -255,23 +270,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async () => {
+    Sentry.addBreadcrumb({
+      category: "auth",
+      message: "Login initiated",
+      level: "info",
+      data: {
+        request_ready: !!request,
+        discovery_ready: !!discovery
+      }
+    });
+
+    if (!request) {
+      const err = new Error("OAuth request not ready — discovery may still be loading");
+      Sentry.captureException(err, { tags: { auth_step: "login_initiation" } });
+      setError(err);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      // Trigger the OAuth flow
+      Sentry.addBreadcrumb({ category: "auth", message: "Calling promptAsync", level: "info" });
+
       await promptAsync({
         createTask: false,
         showInRecents: true
       });
     } catch (error) {
+      Sentry.captureException(error, { tags: { auth_step: "prompt_async" } });
       setError(error instanceof Error ? error : new Error("Login failed"));
       setTokens(null);
       setOidcUser(null);
       setUser(null);
       setLoading(false);
     }
-  }, [promptAsync]);
+  }, [promptAsync, request, discovery]);
 
   const logout = useCallback(
     async (showMessage = false) => {
@@ -316,6 +350,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTokens(null);
         setOidcUser(null);
         setUser(null);
+        Sentry.setUser(null);
 
         // Clear secure store
         await SecureStore.deleteItemAsync("auth_tokens");
