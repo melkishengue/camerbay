@@ -1,10 +1,9 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withUniwindConfig } = require("uniwind/metro");
-const { withSentryConfig } = require("@sentry/react-native/metro");
 
 const config = getDefaultConfig(__dirname);
 
-const uniwindConfig = withUniwindConfig(config, {
+module.exports = withUniwindConfig(config, {
   cssEntryFile: "./global.css",
   dtsFile: "./src/uniwind-types.d.ts",
   extraThemes: [
@@ -18,5 +17,3 @@ const uniwindConfig = withUniwindConfig(config, {
     "alpha-dark"
   ]
 });
-
-module.exports = withSentryConfig(uniwindConfig);
