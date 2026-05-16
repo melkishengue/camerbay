@@ -3,17 +3,16 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { StreamChat, UserResponse } from "stream-chat";
 import {
   Chat,
-  OverlayProvider,
   Streami18n,
   frTranslations,
   useCreateChatClient
 } from "stream-chat-expo";
 import { useAuth } from "./useAuth";
-import { useStreamChatTheme } from "./useChatTheme";
 
-const streami18n = new Streami18n({
+export const streami18n = new Streami18n({
   language: "fr"
 });
+streami18n.registerTranslation("fr", frTranslations);
 
 interface ChatContextType {
   isConnected: boolean;
@@ -47,10 +46,6 @@ const ChatProviderInner: React.FC<{
     tokenOrProvider: chatData.token
   });
 
-  streami18n.registerTranslation("fr", frTranslations);
-
-  const theme = useStreamChatTheme();
-
   // If client fails to initialize, notify parent and render children without chat
   useEffect(() => {
     if (!chatClient) {
@@ -77,11 +72,9 @@ const ChatProviderInner: React.FC<{
     <ChatContext.Provider
       value={{ isConnected: true, chatClient, userId: chatData.userId, error: null }}
     >
-      <OverlayProvider i18nInstance={streami18n} value={{ style: theme }}>
-        <Chat client={chatClient} i18nInstance={streami18n}>
-          {children}
-        </Chat>
-      </OverlayProvider>
+      <Chat client={chatClient} i18nInstance={streami18n}>
+        {children}
+      </Chat>
     </ChatContext.Provider>
   );
 };

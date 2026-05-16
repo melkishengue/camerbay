@@ -1,11 +1,14 @@
 import { initSentry, Sentry } from "@/lib/sentry";
 import { queryClient } from "@/lib/queryClient";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { streami18n } from "@/hooks/useChat";
+import { useStreamChatTheme } from "@/hooks/useChatTheme";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 initSentry();
 import { AuthProvider } from "@/hooks/useAuth";
 import { ChatProvider } from "@/hooks/useChat";
+import { OverlayProvider } from "stream-chat-expo";
 import { NotificationCenterProvider } from "@/hooks/useNotificationCenter";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
@@ -22,7 +25,7 @@ import {
   ToastProvider,
   useThemeColor
 } from "heroui-native";
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -41,6 +44,15 @@ configureReanimatedLogger({
 function NotificationSetup() {
   useNotifications();
   return null;
+}
+
+function StreamChatOverlayWrapper({ children }: { children: React.ReactNode }) {
+  const theme = useStreamChatTheme();
+  return (
+    <OverlayProvider i18nInstance={streami18n} value={{ style: theme }}>
+      {children}
+    </OverlayProvider>
+  );
 }
 
 function AppContent() {
@@ -76,6 +88,7 @@ function AppContent() {
         }
       }}
     >
+      <StreamChatOverlayWrapper>
       <BottomSheetModalProvider>
         <ToastProvider>
           <AuthProvider>
@@ -136,6 +149,7 @@ function AppContent() {
           </AuthProvider>
         </ToastProvider>
       </BottomSheetModalProvider>
+      </StreamChatOverlayWrapper>
     </HeroUINativeProvider>
   );
 }
