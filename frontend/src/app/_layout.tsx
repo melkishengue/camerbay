@@ -18,7 +18,6 @@ import {
   Inter_700Bold,
   useFonts
 } from "@expo-google-fonts/inter";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack } from "expo-router";
 import {
   HeroUINativeProvider,
@@ -89,7 +88,6 @@ function AppContent() {
       }}
     >
       <StreamChatOverlayWrapper>
-      <BottomSheetModalProvider>
         <ToastProvider>
           <AuthProvider>
             <ChatProvider>
@@ -148,7 +146,6 @@ function AppContent() {
             </ChatProvider>
           </AuthProvider>
         </ToastProvider>
-      </BottomSheetModalProvider>
       </StreamChatOverlayWrapper>
     </HeroUINativeProvider>
   );
