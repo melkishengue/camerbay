@@ -257,7 +257,10 @@ export function OfferForm({
                     <View className="flex-1">
                       <Text
                         className="text-foreground"
-                        style={{ fontSize: 14, fontFamily: "Inter_600SemiBold" }}
+                        style={{
+                          fontSize: 14,
+                          fontFamily: "Inter_600SemiBold"
+                        }}
                       >
                         {item.title}
                       </Text>
@@ -265,7 +268,8 @@ export function OfferForm({
                         className="text-muted"
                         style={{ fontSize: 12, fontFamily: "Inter_500Medium" }}
                       >
-                        {item.price.amount.toLocaleString()} {item.price.currency}
+                        {item.price.amount.toLocaleString()}{" "}
+                        {item.price.currency}
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -347,51 +351,40 @@ export function OfferForm({
             maxImages={10}
           />
         </SectionBlock>
-      </ScrollView>
 
-      {/* Bottom action buttons */}
-      <View className="gap-2 pt-2">
-        <Button
-          variant="primary"
-          onPress={handleSubmit(onSubmitForm)}
-          isDisabled={isSubmitting}
-          size="lg"
-        >
-          {isSubmitting ? (
-            <Button.Label style={{ fontFamily: "Inter_600SemiBold" }}>
-              Enregistrement...
-            </Button.Label>
-          ) : (
-            <>
-              <CheckCircle2
-                size={20}
-                color={themeColorAccentForeground}
-                strokeWidth={2}
-              />
-              <Button.Label
-                style={{ fontFamily: "Inter_700Bold", fontSize: 15 }}
-              >
-                {submitLabel}
-              </Button.Label>
-            </>
-          )}
-        </Button>
-
-        <Button
-          variant="ghost"
-          onPress={onCancel}
-          isDisabled={isSubmitting}
-          size="lg"
-        >
-          <X size={18} color="#71717a" strokeWidth={2} />
-          <Button.Label
-            className="text-muted"
-            style={{ fontFamily: "Inter_500Medium" }}
+        {/* Bottom action buttons */}
+        <View className="gap-2 pt-2">
+          <Button
+            variant="primary"
+            onPress={handleSubmit(onSubmitForm)}
+            isDisabled={isSubmitting}
+            size="lg"
           >
-            Annuler
-          </Button.Label>
-        </Button>
-      </View>
+            {isSubmitting ? (
+              <Button.Label>Enregistrement...</Button.Label>
+            ) : (
+              <>
+                <CheckCircle2
+                  size={20}
+                  color={themeColorAccentForeground}
+                  strokeWidth={2}
+                />
+                <Button.Label>{submitLabel}</Button.Label>
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            onPress={onCancel}
+            isDisabled={isSubmitting}
+            size="lg"
+          >
+            <X size={18} color="#71717a" strokeWidth={2} />
+            <Button.Label className="text-muted">Annuler</Button.Label>
+          </Button>
+        </View>
+      </ScrollView>
     </View>
   );
 }

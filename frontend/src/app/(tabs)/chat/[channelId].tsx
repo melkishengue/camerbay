@@ -20,8 +20,6 @@ export default function ChatScreen() {
   const backgroundColor = useThemeColor("background");
   const headerHeight = useHeaderHeight();
 
-  console.log("😞", displayInfo);
-
   useEffect(() => {
     if (displayInfo) {
       navigation.setOptions({
@@ -69,17 +67,14 @@ export default function ChatScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={["bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={headerHeight}
-      >
-        <StreamChannel channel={channel as any} disableKeyboardCompatibleView>
-          <MessageList />
-          <MessageInput />
-        </StreamChannel>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <StreamChannel channel={channel as any} disableKeyboardCompatibleView>
+        <MessageList />
+        <MessageInput />
+      </StreamChannel>
+    </KeyboardAvoidingView>
   );
 }

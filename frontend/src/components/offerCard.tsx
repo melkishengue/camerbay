@@ -2,7 +2,6 @@ import { FullScreenOfferForm } from "@/components/FullScreenOfferForm";
 import { useAuth } from "@/hooks/useAuth";
 import { useChannelById } from "@/hooks/useChannelById";
 import { Offer } from "@/types/offer";
-import { useRouter } from "expo-router";
 import { Card, PressableFeedback, useThemeColor } from "heroui-native";
 import {
   Bookmark,
@@ -23,7 +22,28 @@ interface OfferCardProps {
   onLike?: (offerId: string) => void;
 }
 
-const PUBLISHED_MINUTES = 2; // TODO: replace with real value
+function timeAgo(date: string) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+
+  const intervals = [
+    { label: "an", labelPlural: "ans", seconds: 31536000 },
+    { label: "mois", labelPlural: "mois", seconds: 2592000 },
+    { label: "semaine", labelPlural: "semaines", seconds: 604800 },
+    { label: "jour", labelPlural: "jours", seconds: 86400 },
+    { label: "heure", labelPlural: "heures", seconds: 3600 },
+    { label: "minute", labelPlural: "minutes", seconds: 60 },
+    { label: "seconde", labelPlural: "secondes", seconds: 1 }
+  ];
+
+  for (const { label, labelPlural, seconds: s } of intervals) {
+    const count = Math.floor(seconds / s);
+    if (count >= 1) {
+      return `il y a ${count} ${count !== 1 ? labelPlural : label}`;
+    }
+  }
+
+  return "à l'instant";
+}
 
 const ActionDivider = () => (
   <View className="bg-divider w-7" style={{ height: 0.5 }} />
@@ -53,24 +73,16 @@ const ActionButton = ({
 
 export const OfferCard: React.FC<OfferCardProps> = React.memo(
   ({ offer, currentUserId, onPress, onBookmark, onLike }) => {
-    const [
-      successColor,
-      warningColor,
-      dangerColor,
-      mutedColor,
-      surfaceColor,
-      dividerColor
-    ] = useThemeColor([
-      "success",
-      "warning",
-      "danger",
-      "muted",
-      "surface",
-      "divider",
-      "foreground"
-    ]);
+    const [successColor, warningColor, mutedColor, surfaceColor, dividerColor] =
+      useThemeColor([
+        "success",
+        "warning",
+        "muted",
+        "surface",
+        "divider",
+        "foreground"
+      ]);
 
-    const router = useRouter();
     const { isAuthenticated, login } = useAuth();
     const { startChatChannel } = useChannelById();
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -89,13 +101,6 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
       minPrice != null
         ? `${minPrice.toFixed(0)} ${displayCurrency}`.trim()
         : "Devis";
-
-    const publishedColor =
-      PUBLISHED_MINUTES <= 10
-        ? successColor
-        : PUBLISHED_MINUTES <= 25
-          ? warningColor
-          : dangerColor;
 
     const handleEdit = () => setIsEditModalVisible(true);
 
@@ -130,7 +135,7 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
               }}
               style={{
                 width: 72,
-                borderRadius: 0,
+                borderRadius: 5,
                 backgroundColor: dividerColor
               }}
               resizeMode="cover"
@@ -149,17 +154,13 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
                   )}
                   <Text
                     numberOfLines={1}
-                    className="flex-1 text-[13px] text-foreground"
-                    style={{ fontFamily: "Inter_600SemiBold" }}
+                    className="flex-1 text-lg text-foreground font-bold"
                   >
                     {offer.title}
                   </Text>
                 </View>
-                <Text
-                  className="text-[11.5px] shrink-0"
-                  style={{ fontFamily: "Inter_700Bold", color: publishedColor }}
-                >
-                  {PUBLISHED_MINUTES} min
+                <Text className="shrink-0 text-accent">
+                  {timeAgo(offer.createdAt)}
                 </Text>
               </View>
 
@@ -184,20 +185,16 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
                   <MapPin size={11} color={mutedColor} strokeWidth={2} />
                   <Text
                     numberOfLines={1}
-                    className="text-[10px] text-muted flex-1"
-                    style={{ fontFamily: "Inter_400Regular" }}
+                    className="text-[11px] text-muted flex-1"
                   >
-                    {offer.location.address}
+                    {offer.location.address.replace(", Germany", "")}
                   </Text>
                 </View>
                 <View
                   className="px-2.25 py-0.75 rounded-full ml-2"
                   style={{ backgroundColor: successColor + "25" }}
                 >
-                  <Text
-                    className="text-[10px]"
-                    style={{ fontFamily: "Inter_700Bold", color: successColor }}
-                  >
+                  <Text className="text-[10px] font-bold text-success">
                     {priceLabel}
                   </Text>
                 </View>

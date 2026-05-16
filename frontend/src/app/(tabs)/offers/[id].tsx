@@ -43,8 +43,23 @@ export default function OfferDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const navigation = useNavigation();
-  const [backgroundColor, themeColorAccentForeground, accentColor, successColor, mutedColor, warningColor, dangerColor] =
-    useThemeColor(["background", "accent-foreground", "accent", "success", "muted", "warning", "danger"]);
+  const [
+    backgroundColor,
+    themeColorAccentForeground,
+    accentColor,
+    successColor,
+    mutedColor,
+    warningColor,
+    dangerColor
+  ] = useThemeColor([
+    "background",
+    "accent-foreground",
+    "accent",
+    "success",
+    "muted",
+    "warning",
+    "danger"
+  ]);
   const { user, isAuthenticated, login } = useAuth();
   const { offer, isLoading } = useOfferDetails(id!);
   const { startChatChannel, isCreatingChannel } = useChannelById();
@@ -70,7 +85,7 @@ export default function OfferDetailsScreen() {
   }, [offer?.title, navigation]);
 
   const isOwner: boolean = user?.id === offer?.providerId;
-  const rating = offer?.providerRating || 0;
+  const rating = offer?.providerRating || 3;
 
   const handlePhotoPress = (index: number) => {
     setSelectedPhotoIndex(index);
@@ -166,7 +181,7 @@ export default function OfferDetailsScreen() {
         <PhotoCarousel onPhotoPress={handlePhotoPress} photos={offer.photos} />
 
         {/* Content */}
-        <View className="px-4 pb-6">
+        <View className="px-4 py-6">
           {/* Title + Share */}
           <View className="flex-row items-start gap-3 mb-3">
             <Text

@@ -55,7 +55,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({
           setThemeFamilyState(savedFamily);
           return;
         }
-        setThemeFamilyState("mint");
+        setThemeFamilyState("sky");
       } catch (error) {
       } finally {
         setIsInitialized(true);

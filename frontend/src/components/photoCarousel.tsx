@@ -80,7 +80,7 @@ export function PhotoCarousel({ photos, onPhotoPress }: PhotoCarouselProps) {
       </ScrollView>
 
       {/* Gradient bleed into page background */}
-      <LinearGradient
+      {/* <LinearGradient
         colors={["transparent", backgroundColor]}
         style={{
           position: "absolute",
@@ -89,7 +89,7 @@ export function PhotoCarousel({ photos, onPhotoPress }: PhotoCarouselProps) {
           right: 0,
           height: 88
         }}
-      />
+      /> */}
 
       {/* Photo counter — top right */}
       {photos.length > 1 && (
