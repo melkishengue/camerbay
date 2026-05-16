@@ -364,56 +364,15 @@ export default function OfferDetailsScreen() {
             onClose={() => setIsEditModalVisible(false)}
           />
         </Modal>
-      </ScreenContainer>
 
-      {/* Owner bottom bar */}
-      {isOwner && (
-        <View className="bg-background border-t border-border px-4 pt-[14px] pb-7 gap-[10px]">
-          <Button variant="primary" onPress={() => setIsEditModalVisible(true)}>
-            <Edit
-              size={20}
-              color={themeColorAccentForeground}
-              strokeWidth={2}
-            />
-            <Button.Label
-              className="text-[15px]"
-              style={{ fontFamily: "Inter_600SemiBold" }}
-            >
-              Modifier l&apos;offre
-            </Button.Label>
-          </Button>
-
-          <Button
-            variant="ghost"
-            onPress={handleDelete}
-            isDisabled={isDeleting}
-          >
-            {!isDeleting ? (
-              <>
-                <Trash2 size={20} color={dangerColor} strokeWidth={2} />
-                <Button.Label
-                  className="text-danger text-[15px]"
-                  style={{ fontFamily: "Inter_600SemiBold" }}
-                >
-                  Supprimer l&apos;offre
-                </Button.Label>
-              </>
-            ) : (
-              <Spinner size="sm" />
-            )}
-          </Button>
-        </View>
-      )}
-
-      {/* Non-owner bottom bar */}
-      {!isOwner && (
-        <View className="bg-background border-t border-border px-4 pt-[14px] pb-8">
-          {isAuthenticated ? (
+        {/* Owner bottom bar */}
+        {isOwner && (
+          <View className="bg-background border-t border-border px-4 pt-[14px] pb-7 gap-[10px]">
             <Button
               variant="primary"
-              onPress={() => contactProvider(offer.providerId)}
+              onPress={() => setIsEditModalVisible(true)}
             >
-              <MessageCircle
+              <Edit
                 size={20}
                 color={themeColorAccentForeground}
                 strokeWidth={2}
@@ -422,28 +381,72 @@ export default function OfferDetailsScreen() {
                 className="text-[15px]"
                 style={{ fontFamily: "Inter_600SemiBold" }}
               >
-                {isCreatingChannel
-                  ? "Un instant..."
-                  : `Contacter ${truncateTitle(offer.providerName, 20)}`}
+                Modifier l&apos;offre
               </Button.Label>
             </Button>
-          ) : (
-            <Button variant="primary" onPress={login}>
-              <LogIn
-                size={20}
-                color={themeColorAccentForeground}
-                strokeWidth={2}
-              />
-              <Button.Label
-                className="text-[15px]"
-                style={{ fontFamily: "Inter_600SemiBold" }}
+
+            <Button
+              variant="ghost"
+              onPress={handleDelete}
+              isDisabled={isDeleting}
+            >
+              {!isDeleting ? (
+                <>
+                  <Trash2 size={20} color={dangerColor} strokeWidth={2} />
+                  <Button.Label
+                    className="text-danger text-[15px]"
+                    style={{ fontFamily: "Inter_600SemiBold" }}
+                  >
+                    Supprimer l&apos;offre
+                  </Button.Label>
+                </>
+              ) : (
+                <Spinner size="sm" />
+              )}
+            </Button>
+          </View>
+        )}
+
+        {/* Non-owner bottom bar */}
+        {!isOwner && (
+          <View className="bg-background border-t border-border px-4 pt-[14px] pb-8">
+            {isAuthenticated ? (
+              <Button
+                variant="primary"
+                onPress={() => contactProvider(offer.providerId)}
               >
-                Se connecter pour contacter
-              </Button.Label>
-            </Button>
-          )}
-        </View>
-      )}
+                <MessageCircle
+                  size={20}
+                  color={themeColorAccentForeground}
+                  strokeWidth={2}
+                />
+                <Button.Label
+                  className="text-[15px]"
+                  style={{ fontFamily: "Inter_600SemiBold" }}
+                >
+                  {isCreatingChannel
+                    ? "Un instant..."
+                    : `Contacter ${truncateTitle(offer.providerName, 20)}`}
+                </Button.Label>
+              </Button>
+            ) : (
+              <Button variant="primary" onPress={login}>
+                <LogIn
+                  size={20}
+                  color={themeColorAccentForeground}
+                  strokeWidth={2}
+                />
+                <Button.Label
+                  className="text-[15px]"
+                  style={{ fontFamily: "Inter_600SemiBold" }}
+                >
+                  Se connecter pour contacter
+                </Button.Label>
+              </Button>
+            )}
+          </View>
+        )}
+      </ScreenContainer>
     </View>
   );
 }

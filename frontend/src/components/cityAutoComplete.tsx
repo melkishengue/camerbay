@@ -1,16 +1,19 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import * as Location from "expo-location";
 import { Button, Divider, Spinner, TextField } from "heroui-native";
+import { Search, X } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Control, Controller, FieldErrors } from "react-hook-form";
 import {
   Alert,
+  FlatList,
   Keyboard,
-  LayoutAnimation,
+  Modal,
   Platform,
   Pressable,
-  ScrollView,
+  SafeAreaView,
   Text,
+  TextInput,
   UIManager,
   View
 } from "react-native";
@@ -43,7 +46,7 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   control,
   name,
   errors,
-  placeholder = "Search for a city...",
+  placeholder = "Rechercher une ville...",
   countryCode = "DE",
   radiusKm = 2,
   className = "",
@@ -51,18 +54,18 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   isRequired = false,
   rules
 }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showValidationError, setShowValidationError] = useState(false);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-  const isSelectingCity = useRef(false);
   const lastSyncedValue = useRef<string | null>(null);
+  const searchInputRef = useRef<TextInput>(null);
 
   const {
     searchByName,
     cities,
     isLoading,
-    error: searchError,
+    error: _searchError,
     searchByLocation,
     nearbyCities,
     isLoadingNearby,
@@ -75,99 +78,58 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
     limit: 15
   });
 
+  const openModal = useCallback(() => {
+    setQuery("");
+    clearSearch();
+    setIsModalOpen(true);
+  }, [clearSearch]);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setQuery("");
+    clearSearch();
+    Keyboard.dismiss();
+  }, [clearSearch]);
+
   const handleTextChange = useCallback(
     (text: string) => {
-      // Don't trigger search if we're programmatically setting the value
-      if (isSelectingCity.current) {
-        return;
-      }
-
       setQuery(text);
-      setShowValidationError(false);
-
       if (text.trim()) {
         searchByName(text);
-        if (!isDropdownOpen) {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setIsDropdownOpen(true);
-        }
       } else {
         clearSearch();
-        if (isDropdownOpen) {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setIsDropdownOpen(false);
-        }
       }
     },
-    [searchByName, clearSearch, isDropdownOpen]
+    [searchByName, clearSearch]
   );
 
   const handleCitySelect = useCallback(
     (city: Place, onChange: (value: Place) => void) => {
-      isSelectingCity.current = true;
-      setQuery(city.name);
       lastSyncedValue.current = city.name;
       setShowValidationError(false);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setIsDropdownOpen(false);
-      Keyboard.dismiss();
       onChange(city);
       clearSearch();
-      // Reset the flag after a short delay
-      setTimeout(() => {
-        isSelectingCity.current = false;
-      }, 100);
+      closeModal();
     },
-    [clearSearch]
+    [clearSearch, closeModal]
   );
-
-  const handleBlur = useCallback(
-    (value: Place | null) => {
-      // Close dropdown with animation
-      if (isDropdownOpen) {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setIsDropdownOpen(false);
-      }
-
-      // Only show validation error if there's query text but no selected city
-      // (user typed something but didn't select from dropdown)
-      // If the field is empty and not required, that's fine
-      if (query.trim() && !value) {
-        setShowValidationError(true);
-      }
-    },
-    [isDropdownOpen, query]
-  );
-
-  const handleFocus = () => {
-    setShowValidationError(false);
-    if (query.trim() && cities.length > 0 && !isDropdownOpen) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setIsDropdownOpen(true);
-    }
-  };
 
   const handleClearInput = (onChange: (value: Place | null) => void) => {
-    setQuery("");
     lastSyncedValue.current = null;
     setShowValidationError(false);
     clearSearch();
     onChange(null);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsDropdownOpen(false);
   };
 
   const handleUseCurrentLocation = async (onChange: (value: Place) => void) => {
     try {
       setIsFetchingLocation(true);
 
-      // Check permission status
       const { status: existingStatus } =
         await Location.getForegroundPermissionsAsync();
 
       let finalStatus = existingStatus;
 
-      // Request permission if not granted
       if (existingStatus !== "granted") {
         const { status } = await Location.requestForegroundPermissionsAsync();
         finalStatus = status;
@@ -182,19 +144,17 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
         return;
       }
 
-      // Get current location
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced
       });
 
-      // Search for nearby cities
       await searchByLocation(
         location.coords.latitude,
         location.coords.longitude
       );
 
       setIsFetchingLocation(false);
-    } catch (error) {
+    } catch {
       setIsFetchingLocation(false);
       Alert.alert(
         "Erreur",
@@ -206,7 +166,6 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   const fieldError = errors?.[name];
   const hasError = !!fieldError || showValidationError;
 
-  // Build validation rules based on isRequired prop
   const validationRules = {
     ...rules,
     required: isRequired ? rules?.required || "Ce champ est requis" : false
@@ -219,6 +178,7 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
       rules={validationRules}
       render={({ field: { onChange, value } }) => {
         // Auto-select nearest city when location search completes
+
         useEffect(() => {
           if (nearbyCities.length > 0 && !isLoadingNearby) {
             const nearest = nearbyCities[0];
@@ -227,31 +187,19 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
           }
         }, [nearbyCities, isLoadingNearby]);
 
-        // Sync query with selected value (handles both initial value and external changes)
+        // Sync lastSyncedValue when value changes externally
         useEffect(() => {
           if (value?.name) {
-            // Only update if the value is different from what we last synced
-            if (lastSyncedValue.current !== value.name) {
-              isSelectingCity.current = true;
-              setQuery(value.name);
-              lastSyncedValue.current = value.name;
-              setShowValidationError(false);
-              setTimeout(() => {
-                isSelectingCity.current = false;
-              }, 100);
-            }
+            lastSyncedValue.current = value.name;
           } else if (!value) {
-            // Clear query if value is null/undefined
-            if (lastSyncedValue.current !== null) {
-              setQuery("");
-              lastSyncedValue.current = null;
-            }
+            lastSyncedValue.current = null;
           }
         }, [value]);
 
         return (
           <View className={className}>
             <TextField isRequired={isRequired} isInvalid={hasError}>
+              {/* Label row */}
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-base font-medium text-foreground">
                   Ville
@@ -268,80 +216,39 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
                 </Button>
               </View>
 
-              <View className="relative">
-                <View className="w-full flex-row items-center">
-                  <TextField.Input
-                    placeholder={placeholder}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                    value={query}
-                    onChangeText={handleTextChange}
-                    onFocus={handleFocus}
-                    onBlur={() => handleBlur(value)}
-                    className="flex-1 pr-10"
-                    editable={!isFetchingLocation}
-                  />
+              {/* Trigger — tapping opens the search modal */}
+              <Pressable
+                onPress={openModal}
+                className={`w-full flex-row items-center justify-between px-3 py-2 rounded-2xl border-2 bg-field shadow-field ${
+                  hasError ? "border-danger" : "border-field"
+                }`}
+                style={{ borderCurve: "continuous" }}
+              >
+                <Text
+                  className={`flex-1 text-base ${
+                    value?.name ? "text-foreground" : "text-muted"
+                  }`}
+                  numberOfLines={1}
+                >
+                  {value?.name ?? placeholder}
+                </Text>
 
-                  {/* Loading indicator */}
-                  {(isLoading || isFetchingLocation) && (
-                    <View className="absolute right-3" pointerEvents="none">
-                      <Spinner size="sm" color="#9ca3af" />
-                    </View>
-                  )}
-
-                  {/* Clear button */}
-                  {query && !isLoading && !isFetchingLocation && (
-                    <Pressable
-                      className="absolute right-3"
-                      onPress={() => handleClearInput(onChange)}
-                    >
-                      <Text className="text-muted text-lg">✕</Text>
-                    </Pressable>
-                  )}
-                </View>
-
-                {/* Dropdown Results */}
-                {isDropdownOpen && cities.length > 0 && (
-                  <View className="absolute top-full left-0 right-0 mt-2 bg-overlay border border-separator rounded-xl overflow-hidden shadow-lg z-50">
-                    <ScrollView
-                      className="max-h-64"
-                      showsVerticalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                    >
-                      {cities.map((place, index) => (
-                        <React.Fragment key={place.place_id}>
-                          <Pressable
-                            onPress={() => handleCitySelect(place, onChange)}
-                            className="py-3 px-4 bg-background-tertiary"
-                          >
-                            <Text className="text-base text-foreground font-medium">
-                              {place.formatted_address}
-                            </Text>
-                            {/* {city.distance_km ? (
-                              <Text className="text-sm text-muted mt-0.5">
-                                {city.distance_km.toFixed(1)} km
-                              </Text>
-                            ) : null} */}
-                          </Pressable>
-                          {index < cities.length - 1 && <Divider />}
-                        </React.Fragment>
-                      ))}
-                    </ScrollView>
-                  </View>
+                {isFetchingLocation ? (
+                  <Spinner size="sm" color="#9ca3af" />
+                ) : value?.name ? (
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleClearInput(onChange);
+                    }}
+                    hitSlop={8}
+                  >
+                    <Text className="text-muted text-lg">✕</Text>
+                  </Pressable>
+                ) : (
+                  <Text className="text-muted text-base">›</Text>
                 )}
-
-                {/* Empty state */}
-                {isDropdownOpen &&
-                  !isLoading &&
-                  query.trim() &&
-                  cities.length === 0 && (
-                    <View className="absolute top-full left-0 right-0 mt-2 bg-overlay border border-separator rounded-xl p-4 z-50">
-                      <Text className="text-sm text-muted text-center">
-                        Aucune ville trouvée
-                      </Text>
-                    </View>
-                  )}
-              </View>
+              </Pressable>
 
               {description && !hasError && (
                 <TextField.Description>{description}</TextField.Description>
@@ -366,6 +273,86 @@ export const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
                 </Text>
               </View>
             )}
+
+            {/* Search modal */}
+            <Modal
+              visible={isModalOpen}
+              animationType="slide"
+              presentationStyle="pageSheet"
+              onRequestClose={closeModal}
+            >
+              <SafeAreaView className="flex-1 bg-background">
+                {/* Modal header */}
+                <View className="flex-row items-center gap-3 px-4 pt-4 pb-2">
+                  <View className="flex-1 flex-row items-center bg-background-tertiary border border-separator rounded-xl px-3">
+                    <Search
+                      size={18}
+                      className="text-muted mr-4"
+                      color="#9ca3af"
+                    />
+                    <TextInput
+                      ref={searchInputRef}
+                      autoFocus
+                      value={query}
+                      onChangeText={handleTextChange}
+                      placeholder={placeholder}
+                      placeholderTextColor="#9ca3af"
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                      returnKeyType="search"
+                      className="flex-1 py-3 text-base text-foreground pl-2"
+                      style={{ color: "inherit" }}
+                    />
+                    {isLoading ? (
+                      <Spinner size="sm" color="#9ca3af" />
+                    ) : query.length > 0 ? (
+                      <Pressable
+                        onPress={() => handleTextChange("")}
+                        hitSlop={8}
+                      >
+                        <X size={18} color="#9ca3af" />
+                      </Pressable>
+                    ) : null}
+                  </View>
+
+                  <Button onPress={closeModal} variant="primary" size="sm">
+                    Annuler
+                  </Button>
+                </View>
+
+                {/* Results */}
+                {cities.length > 0 ? (
+                  <FlatList
+                    data={cities}
+                    keyExtractor={(item) => item.place_id}
+                    keyboardShouldPersistTaps="handled"
+                    ItemSeparatorComponent={() => <Divider />}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        onPress={() => handleCitySelect(item, onChange)}
+                        className="py-3 px-4 bg-background-tertiary active:opacity-70"
+                      >
+                        <Text className="text-base text-foreground font-medium">
+                          {item.formatted_address}
+                        </Text>
+                      </Pressable>
+                    )}
+                  />
+                ) : query.trim() && !isLoading ? (
+                  <View className="flex-1 items-center justify-center">
+                    <Text className="text-muted text-base">
+                      Aucune ville trouvée
+                    </Text>
+                  </View>
+                ) : !query.trim() ? (
+                  <View className="flex-1 items-center justify-center">
+                    <Text className="text-muted text-base">
+                      Tapez pour rechercher une ville
+                    </Text>
+                  </View>
+                ) : null}
+              </SafeAreaView>
+            </Modal>
           </View>
         );
       }}

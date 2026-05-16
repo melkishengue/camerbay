@@ -216,28 +216,32 @@ export const OfferSearchForm: React.FC<OfferSearchFormProps> = ({
             )}
           />
         </SectionBlock>
+
+        {/* Fixed Action Buttons */}
+        <View className="p-4 border-t border-border bg-background gap-2">
+          <Button variant="primary" onPress={handleSubmit(onSubmit)}>
+            <Search
+              size={20}
+              color={themeColorAccentForeground}
+              strokeWidth={2}
+            />
+            <Button.Label
+              style={{ fontFamily: "Inter_600SemiBold", fontSize: 15 }}
+            >
+              Rechercher
+            </Button.Label>
+          </Button>
+
+          <Button variant="ghost" onPress={handleReset}>
+            <X size={20} color={themeColorMuted} strokeWidth={2} />
+            <Button.Label
+              style={{ fontFamily: "Inter_600SemiBold", fontSize: 15 }}
+            >
+              Réinitialiser
+            </Button.Label>
+          </Button>
+        </View>
       </ScrollView>
-
-      {/* Fixed Action Buttons */}
-      <View className="p-4 border-t border-border bg-background gap-2">
-        <Button variant="primary" onPress={handleSubmit(onSubmit)}>
-          <Search
-            size={20}
-            color={themeColorAccentForeground}
-            strokeWidth={2}
-          />
-          <Button.Label style={{ fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
-            Rechercher
-          </Button.Label>
-        </Button>
-
-        <Button variant="ghost" onPress={handleReset}>
-          <X size={20} color={themeColorMuted} strokeWidth={2} />
-          <Button.Label style={{ fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
-            Réinitialiser
-          </Button.Label>
-        </Button>
-      </View>
     </View>
   );
 };
