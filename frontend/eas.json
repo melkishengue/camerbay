@@ -24,6 +24,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "henguemelkispro@yahoo.com",
+        "ascAppId": "6760669462",
+        "appleTeamId": "6U6HM5M627"
+      }
+    }
   }
 }

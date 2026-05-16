@@ -2,7 +2,7 @@
   "expo": {
     "name": "Camerbay",
     "slug": "camerbay",
-    "version": "v1.0.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "com.camerbay.app",
@@ -17,9 +17,7 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to show nearby services and providers.",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": [
-              "com.camerbay.app"
-            ]
+            "CFBundleURLSchemes": ["com.camerbay.app"]
           }
         ]
       }
@@ -55,10 +53,7 @@
               "scheme": "com.camerbay.app"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
