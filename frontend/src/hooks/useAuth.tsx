@@ -178,7 +178,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           const decodedUser: UserInfo = jwtDecode(tokens.idToken);
           setOidcUser(decodedUser);
-          setTokens(tokens);
 
           await SecureStore.setItemAsync("auth_tokens", JSON.stringify(tokens));
 
@@ -186,6 +185,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             tokens.idToken,
             tokens.accessToken
           );
+
+          // Set tokens only after backend sync succeeds — prevents isAuthenticated
+          // flipping to true too early, which would fire notification queries
+          // concurrently with sync and cause onSessionExpired to be called mid-login.
+          setTokens(tokens);
 
           toast.show({
             duration: 5000,

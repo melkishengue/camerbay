@@ -308,9 +308,10 @@ class ApiClient {
     return this.client.delete<T>(url, { ...config, skipAuth: true });
   }
 
-  // Special method for unauthenticated requests (like initial sync)
+  // Special method for passing an explicit token, bypassing the auth interceptor
   async postWithToken<T = any>(url: string, data: any, token: string) {
     return this.client.post<T>(url, data, {
+      skipAuth: true,
       headers: {
         Authorization: `Bearer ${token}`
       }

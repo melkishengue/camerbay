@@ -1,7 +1,11 @@
 import RootTabLayout from "@/components/rootTabLayout";
+import { useThemeColor } from "heroui-native";
 import { Stack } from "expo-router";
 
-export default function ChatLayout() {
+function ChatLayout() {
+  const backgroundColor = useThemeColor("background");
+  const foregroundColor = useThemeColor("foreground");
+
   return (
     <RootTabLayout>
       <Stack.Screen
@@ -13,9 +17,15 @@ export default function ChatLayout() {
         options={{
           headerShown: true,
           headerBackTitle: "Retour",
-          title: "" // Set dynamically in the screen
+          title: "", // Set dynamically in the screen
+          headerTransparent: false,
+          headerBlurEffect: undefined,
+          headerStyle: { backgroundColor },
+          headerTintColor: foregroundColor
         }}
       />
     </RootTabLayout>
   );
 }
+
+export default ChatLayout;

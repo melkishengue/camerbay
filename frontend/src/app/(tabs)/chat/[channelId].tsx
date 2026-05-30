@@ -3,6 +3,7 @@ import { useChat } from "@/hooks/useChat";
 import { apiClient } from "@/lib/axios-api-client";
 import { chatEvents } from "@/lib/chatEvents";
 import { truncateTitle } from "@/lib/utils";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams } from "expo-router";
 import { Avatar, useThemeColor } from "heroui-native";
@@ -44,11 +45,12 @@ function formatTime(iso: string | null | undefined): string {
 export default function ChatScreen() {
   const { channelId } = useLocalSearchParams<{ channelId: string }>();
   const navigation = useNavigation();
+  const headerHeight = useHeaderHeight();
   const { userId } = useChat();
   const { displayInfo, isLoading, error } = useChannelById(channelId);
   const backgroundColor = useThemeColor("background");
   const foregroundColor = useThemeColor("foreground");
-  const borderColor = useThemeColor("border");
+  const borderColor = useThemeColor("background-tertiary");
   const mutedColor = useThemeColor("muted");
   const accentColor = useThemeColor("accent");
 
@@ -236,7 +238,7 @@ export default function ChatScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={headerHeight}
     >
       <FlatList
         ref={flatListRef}
