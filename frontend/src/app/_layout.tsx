@@ -117,7 +117,15 @@ function AppContent() {
                   options={{
                     headerShown: true,
                     headerBackTitle: "Retour",
-                    title: ""
+                    title: "",
+                    headerTransparent: false,
+                    headerBlurEffect: undefined,
+                    headerStyle: {
+                      backgroundColor: Platform.select({
+                        ios: themeColorBackground,
+                        android: themeColorBackground
+                      })
+                    }
                   }}
                 />
                 <Stack.Screen

@@ -94,7 +94,7 @@ public class ChatService {
       notificationService.sendNotification(
           recipientId,
           NotificationType.CHAT_MESSAGE,
-          senderDisplayName,
+          "Nouveau message de " + senderDisplayName,
           text,
           Map.of("type", "chat_message", "channelId", conversationId.toString())
       );
