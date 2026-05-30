@@ -3,20 +3,23 @@ import { isAxiosError } from "axios";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
-import type { Channel } from "stream-chat";
-import { useChat } from "./useChat";
 
 interface ChannelDisplayInfo {
   name: string;
   image?: string;
 }
 
-interface CreateChannelResponse {
-  channelId: string;
+interface ConversationSummary {
+  id: string;
+  otherParticipant: {
+    id: string;
+    name: string;
+    imageUrl?: string;
+  } | null;
 }
 
 interface UseChannelByIdReturn {
-  channel: Channel | null;
+  conversationId: string | null;
   isLoading: boolean;
   isCreatingChannel: boolean;
   error: Error | null;
@@ -24,87 +27,61 @@ interface UseChannelByIdReturn {
   startChatChannel: (otherUserId: string) => Promise<void>;
 }
 
-export const useChannelById = (
-  channelId?: string | undefined
-): UseChannelByIdReturn => {
-  const { chatClient, userId: currentUserId } = useChat();
-  const [channel, setChannel] = useState<Channel | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export const useChannelById = (channelId?: string): UseChannelByIdReturn => {
+  const [conversationId, setConversationId] = useState<string | null>(channelId ?? null);
+  const [isLoading, setIsLoading] = useState(!!channelId);
   const [error, setError] = useState<Error | null>(null);
-  const [displayInfo, setDisplayInfo] = useState<ChannelDisplayInfo | null>(
-    null
-  );
+  const [displayInfo, setDisplayInfo] = useState<ChannelDisplayInfo | null>(null);
+  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const initChannel = async () => {
-      if (!chatClient || !channelId || !currentUserId) {
-        setIsLoading(false);
-        return;
-      }
+    if (!channelId) {
+      setIsLoading(false);
+      return;
+    }
 
+    const fetchConversation = async () => {
       try {
         setIsLoading(true);
         setError(null);
-
-        // Get the existing channel by ID
-        const newChannel = chatClient.channel("messaging", channelId);
-        await newChannel.watch();
-
-        setChannel(newChannel);
-
-        // Get display info (name and image)
-        const members = Object.values(newChannel.state.members);
-        console.log("[ChannelById] currentUserId:", currentUserId);
-        console.log(
-          "[ChannelById] members:",
-          members.map((m) => ({ user_id: m.user_id, name: m.user?.name }))
-        );
-        const info = getChannelDisplayInfo(newChannel, currentUserId ?? "");
-        setDisplayInfo(info);
+        const response = await apiClient.get<ConversationSummary[]>("/api/v1/chat/conversations");
+        const conv = response.data.find((c) => c.id === channelId);
+        if (conv?.otherParticipant) {
+          setDisplayInfo({
+            name: conv.otherParticipant.name,
+            image: conv.otherParticipant.imageUrl,
+          });
+        }
+        setConversationId(channelId);
       } catch (err) {
-        setError(
-          err instanceof Error ? err : new Error("Failed to load channel")
-        );
+        setError(err instanceof Error ? err : new Error("Failed to load conversation"));
       } finally {
         setIsLoading(false);
       }
     };
 
-    initChannel();
-
-    return () => {
-      channel?.stopWatching();
-    };
-  }, [channelId, chatClient, currentUserId]);
-
-  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+    fetchConversation();
+  }, [channelId]);
 
   const startChatChannel = async (otherUserId: string) => {
     if (isCreatingChannel) return;
-
     setIsCreatingChannel(true);
-
     try {
-      const response = await apiClient.post<CreateChannelResponse>(
-        "/api/v1/chat/channels",
-        {
-          providerId: otherUserId
-        }
-      );
-
-      const { channelId } = response.data;
-
+      const response = await apiClient.post<ConversationSummary>("/api/v1/chat/conversations", {
+        otherUserId,
+      });
+      const { id } = response.data;
       router.push({
         pathname: "/conversation/[channelId]",
-        params: { channelId }
+        params: { channelId: id },
       });
     } catch (error) {
       if (isAxiosError(error)) {
-        const message = error.response?.data?.message || "Failed to start chat";
-        Alert.alert("Error", message);
+        const message = error.response?.data?.message || "Impossible de démarrer la conversation";
+        Alert.alert("Erreur", message);
       } else {
-        Alert.alert("Error", "Something went wrong. Please try again.");
+        Alert.alert("Erreur", "Une erreur est survenue. Veuillez réessayer.");
       }
     } finally {
       setIsCreatingChannel(false);
@@ -112,48 +89,11 @@ export const useChannelById = (
   };
 
   return {
-    channel,
+    conversationId,
     isLoading,
+    isCreatingChannel,
     error,
     displayInfo,
     startChatChannel,
-    isCreatingChannel
-  };
-};
-
-const getChannelDisplayInfo = (
-  channel: Channel,
-  currentUserId: string
-): ChannelDisplayInfo => {
-  const members = Object.values(channel.state.members);
-
-  console.log("👯‍♂️", JSON.stringify(members, null, 2), currentUserId);
-
-  // For DMs (2 members), always use the other member's info
-  if (members.length <= 2) {
-    const otherMember = members.find(
-      (member) => member.user_id !== currentUserId
-    );
-    return {
-      name: otherMember?.user?.name || otherMember?.user_id || "Utilisateur",
-      image: otherMember?.user?.image as string | undefined
-    };
-  }
-
-  // For group chats, use channel name
-  if (channel.data && "name" in channel?.data && channel.data?.name) {
-    return {
-      name: channel.data.name as string,
-      image: undefined
-    };
-  }
-
-  // Fallback for group chats without name
-  const otherMember = members.find(
-    (member) => member.user_id !== currentUserId
-  );
-  return {
-    name: otherMember?.user?.name || otherMember?.user_id || "Utilisateur",
-    image: otherMember?.user?.image as string | undefined
   };
 };

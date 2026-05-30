@@ -24,7 +24,6 @@ import {
 import React, { useState } from "react";
 import { Image, Modal, Text, View } from "react-native";
 
-
 const AccountScreen = () => {
   const { logout, loading, isAuthenticated, user, refetchUser, updateUser } =
     useAuth();
@@ -148,14 +147,14 @@ const AccountScreen = () => {
   }
 
   return (
-    <ScreenContainer onRefresh={onRefresh} refreshing={refreshing} withSchrollView>
-
+    <ScreenContainer
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+      withSchrollView
+    >
       {/* ── Profile header ── */}
       <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 24 }}>
-        <ProfilePic
-          profilePhotoUrl={user?.profilePhotoUrl}
-          canUpload
-        />
+        <ProfilePic profilePhotoUrl={user?.profilePhotoUrl} canUpload />
 
         {/* Name + edit */}
         <View
@@ -222,7 +221,11 @@ const AccountScreen = () => {
         {user?.phone ? (
           <Text
             className="text-muted"
-            style={{ fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2 }}
+            style={{
+              fontSize: 13,
+              fontFamily: "Inter_400Regular",
+              marginTop: 2
+            }}
           >
             {user.phone}
           </Text>
@@ -247,9 +250,7 @@ const AccountScreen = () => {
       {user?.isProvider && (
         <View style={{ marginBottom: 20 }}>
           <SectionLabel>À propos</SectionLabel>
-          <View
-            className="bg-surface border border-border rounded-2xl overflow-hidden"
-          >
+          <View className="bg-surface border border-border rounded-2xl overflow-hidden">
             {/* Header row */}
             <View
               style={{
@@ -289,7 +290,11 @@ const AccountScreen = () => {
               ) : (
                 <Text
                   className="text-muted"
-                  style={{ fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 }}
+                  style={{
+                    fontSize: 13,
+                    fontFamily: "Inter_400Regular",
+                    lineHeight: 20
+                  }}
                 >
                   Ajoutez une description de vos services...
                 </Text>
@@ -348,7 +353,7 @@ const AccountScreen = () => {
 
       {/* ── Logout ── */}
       <View style={{ paddingBottom: 32 }}>
-        <Button size="lg" variant="danger" onPress={() => logout()}>
+        <Button size="md" variant="danger" onPress={() => logout()}>
           <LogOut size={20} color="white" strokeWidth={2} />
           <Button.Label
             style={{ fontFamily: "Inter_600SemiBold", fontSize: 15 }}

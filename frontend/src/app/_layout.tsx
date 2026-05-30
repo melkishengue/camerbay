@@ -1,14 +1,11 @@
 import { initSentry, Sentry } from "@/lib/sentry";
 import { queryClient } from "@/lib/queryClient";
 import { ErrorFallback } from "@/components/ErrorFallback";
-import { streami18n } from "@/hooks/useChat";
-import { useStreamChatTheme } from "@/hooks/useChatTheme";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 initSentry();
 import { AuthProvider } from "@/hooks/useAuth";
 import { ChatProvider } from "@/hooks/useChat";
-import { OverlayProvider } from "stream-chat-expo";
 import { NotificationCenterProvider } from "@/hooks/useNotificationCenter";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
@@ -45,15 +42,6 @@ function NotificationSetup() {
   return null;
 }
 
-function StreamChatOverlayWrapper({ children }: { children: React.ReactNode }) {
-  const theme = useStreamChatTheme();
-  return (
-    <OverlayProvider i18nInstance={streami18n} value={{ style: theme }}>
-      {children}
-    </OverlayProvider>
-  );
-}
-
 function AppContent() {
   const contentWrapper = useCallback(
     (children: React.ReactNode) => (
@@ -87,8 +75,7 @@ function AppContent() {
         }
       }}
     >
-      <StreamChatOverlayWrapper>
-        <ToastProvider>
+      <ToastProvider>
           <AuthProvider>
             <ChatProvider>
             <NotificationCenterProvider>
@@ -146,7 +133,6 @@ function AppContent() {
             </ChatProvider>
           </AuthProvider>
         </ToastProvider>
-      </StreamChatOverlayWrapper>
     </HeroUINativeProvider>
   );
 }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/axios-api-client";
+import { useEffect, useRef, useState } from "react";
 import { useChat } from "./useChat";
 
 interface UnreadMessagesResult {
@@ -7,66 +8,30 @@ interface UnreadMessagesResult {
 }
 
 export const useUnreadChatMessages = (): UnreadMessagesResult => {
-  const { chatClient } = useChat();
-  const isChatLoggedIn = !!chatClient?.userID;
+  const { userId } = useChat();
+  const isChatLoggedIn = !!userId;
   const [unreadCount, setUnreadCount] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!chatClient?.userID) return;
+    if (!userId) return;
 
-    // Function to fetch unread count
-    const fetchUnreadCount = async () => {
+    const fetchUnread = async () => {
       try {
-        // Query channels to get unread counts
-        const filters = {
-          members: { $in: [chatClient.userID] },
-          type: "messaging"
-        };
-
-        const channels = await chatClient.queryChannels(
-          filters as any,
-          {},
-          {
-            state: true,
-            watch: false,
-            presence: false
-          }
-        );
-
-        // Sum up unread counts from all channels
-        const total = channels.reduce((sum, channel) => {
-          return sum + (channel.countUnread() || 0);
-        }, 0);
-
-        setUnreadCount(total);
-      } catch (error) {
-
+        const response = await apiClient.get<{ count: number }>("/api/v1/chat/unread");
+        setUnreadCount(response.data.count);
+      } catch {
+        // silently fail
       }
     };
 
-    // Initial fetch
-    fetchUnreadCount();
-
-    // Listen for events that might change unread count
-    const handleEvent = () => {
-      fetchUnreadCount();
-    };
-
-    chatClient.on("message.new", handleEvent);
-    chatClient.on("message.read", handleEvent);
-    chatClient.on("notification.message_new", handleEvent);
-    chatClient.on("notification.mark_read", handleEvent);
+    fetchUnread();
+    intervalRef.current = setInterval(fetchUnread, 15000);
 
     return () => {
-      chatClient.off("message.new", handleEvent);
-      chatClient.off("message.read", handleEvent);
-      chatClient.off("notification.message_new", handleEvent);
-      chatClient.off("notification.mark_read", handleEvent);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [chatClient]);
+  }, [userId]);
 
-  return {
-    unreadCount,
-    isChatLoggedIn
-  };
+  return { unreadCount, isChatLoggedIn };
 };

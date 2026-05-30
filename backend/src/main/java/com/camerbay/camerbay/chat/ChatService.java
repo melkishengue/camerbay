@@ -1,133 +1,149 @@
 package com.camerbay.camerbay.chat;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.camerbay.camerbay.auth.AuthUser;
 import com.camerbay.camerbay.user.UserResponse;
 import com.camerbay.camerbay.user.UserService;
 
-import io.getstream.chat.java.exceptions.StreamException;
-import io.getstream.chat.java.models.Channel;
-import io.getstream.chat.java.models.Channel.ChannelMemberRequestObject;
-import io.getstream.chat.java.models.Channel.ChannelRequestObject;
-import io.getstream.chat.java.models.User;
-import io.getstream.chat.java.models.User.UserRequestObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ChatService {
 
   private final UserService userService;
+  private final ConversationRepository conversationRepository;
+  private final ChatMessageRepository messageRepository;
 
-  @Value("${stream.key}")
-  private String streamApiKey;
+  public List<ConversationSummaryResponse> getConversations(AuthUser currentUser) {
+    UserResponse me = userService.findByEmail(currentUser.getEmail());
+    List<Conversation> conversations = conversationRepository.findAllByMemberId(me.id());
 
-  @Value("${stream.secret}")
-  private String streamApiSecret;
-
-  public ChatTokenResponse generateToken(AuthUser user) {
-    configureStreamCredentials();
-    UserResponse userFromDB = userService.findByEmail(user.getEmail());
-    log.info("[Stream] generateToken → oauthEmail={}, dbUserId={}, dbUsername={}", user.getEmail(), userFromDB.id(), userFromDB.username());
-    String token = User.createToken(userFromDB.id().toString(), null, null);
-
-    return new ChatTokenResponse(token, streamApiKey, userFromDB.id().toString());
+    return conversations.stream()
+        .map(conv -> buildSummary(conv, me))
+        .toList();
   }
 
-  public CreateChannelResponse createOrGetChannel(AuthUser currentUser, String providerId) {
-    configureStreamCredentials();
+  @Transactional
+  public ConversationSummaryResponse createOrGetConversation(AuthUser currentUser, String otherUserId) {
+    UserResponse me = userService.findByEmail(currentUser.getEmail());
+    UUID otherId = UUID.fromString(otherUserId);
 
-    UserResponse userFromDB = userService.findByEmail(currentUser.getEmail());
+    Conversation conversation = conversationRepository
+        .findBetweenUsers(me.id(), otherId)
+        .orElseGet(() -> {
+          Conversation newConv = Conversation.create(me.id(), otherId);
+          return conversationRepository.save(newConv);
+        });
 
-    String channelId = generateChannelId(userFromDB.id().toString(), providerId);
+    return buildSummary(conversation, me);
+  }
 
-    log.info("Channel: {}", channelId);
+  public Page<MessageResponse> getMessages(AuthUser currentUser, UUID conversationId, int page, int size) {
+    UserResponse me = userService.findByEmail(currentUser.getEmail());
+    Conversation conv = conversationRepository.findById(conversationId)
+        .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-    try {
-      createStreamChannel(userFromDB, providerId, channelId);
-
-      log.info("Channel created/retrieved: {} for users {} and {}",
-          channelId, userFromDB.id().toString(), providerId);
-
-      String channelCid = "messaging:" + channelId;
-      return new CreateChannelResponse(channelId, channelCid);
-
-    } catch (StreamException e) {
-      log.error("Stream API error creating channel: {}", e.getMessage(), e);
-      throw new ChatServiceException("Failed to create chat channel: " + e.getMessage(), e);
-    } catch (Exception e) {
-      log.error("Unexpected error creating channel", e);
-      throw new ChatServiceException("Failed to create chat channel", e);
+    if (!conv.getMemberIds().contains(me.id())) {
+      throw new IllegalArgumentException("Not a member of this conversation");
     }
+
+    return messageRepository
+        .findByConversationIdOrderByCreatedAtDesc(conversationId, PageRequest.of(page, size))
+        .map(msg -> toMessageResponse(msg, me.id()));
   }
 
-  private void createStreamChannel(UserResponse userFromDB, String providerId, String channelId)
-      throws StreamException {
+  @Transactional
+  public MessageResponse sendMessage(AuthUser currentUser, UUID conversationId, String text) {
+    UserResponse me = userService.findByEmail(currentUser.getEmail());
+    Conversation conv = conversationRepository.findById(conversationId)
+        .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-    String displayName = userFromDB.name() != null ? userFromDB.name() : userFromDB.username();
+    if (!conv.getMemberIds().contains(me.id())) {
+      throw new IllegalArgumentException("Not a member of this conversation");
+    }
 
-    log.info("[Stream] channelCreator → id={}, name={}", userFromDB.id(), displayName);
-    log.info("[Stream] hostUser    → userId={}", userFromDB.id());
-    log.info("[Stream] guestUser   → userId={}", providerId);
+    ChatMessage message = ChatMessage.create(conversationId, me.id(), text);
+    message = messageRepository.save(message);
 
-    var channelCreator = UserRequestObject.builder()
-        .id(userFromDB.id().toString())
-        .name(displayName)
-        .build();
+    conv.updateLastMessage(text, message.getCreatedAt());
+    conversationRepository.save(conv);
 
-    var hostUser = ChannelMemberRequestObject.builder()
-        .userId(userFromDB.id().toString())
-        .build();
-
-    var guestUser = ChannelMemberRequestObject.builder()
-        .userId(providerId)
-        .build();
-
-    Channel.getOrCreate("messaging", channelId)
-        .data(
-            ChannelRequestObject.builder()
-                .createdBy(channelCreator)
-                .members(List.of(hostUser, guestUser))
-                .build())
-        .request();
+    return toMessageResponse(message, me.id());
   }
 
-  private String generateChannelId(String userId1, String userId2) {
-    String sortedIds = List.of(userId1, userId2)
-        .stream()
-        .sorted()
-        .reduce((a, b) -> a + "-" + b)
-        .orElseThrow(() -> new IllegalArgumentException("Cannot generate channel ID"));
+  @Transactional
+  public void markAsRead(AuthUser currentUser, UUID conversationId) {
+    UserResponse me = userService.findByEmail(currentUser.getEmail());
+    messageRepository.markAllAsRead(conversationId, me.id());
+  }
 
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = digest.digest(sortedIds.getBytes(StandardCharsets.UTF_8));
+  public long getTotalUnread(AuthUser currentUser) {
+    UserResponse me = userService.findByEmail(currentUser.getEmail());
+    Long count = messageRepository.countTotalUnreadForUser(me.id());
+    return count != null ? count : 0L;
+  }
 
-      StringBuilder hexString = new StringBuilder();
-      for (byte b : hash) {
-        String hex = Integer.toHexString(0xff & b);
-        if (hex.length() == 1)
-          hexString.append('0');
-        hexString.append(hex);
+  private ConversationSummaryResponse buildSummary(Conversation conv, UserResponse me) {
+    UUID otherId = conv.getMemberIds().stream()
+        .filter(id -> !id.equals(me.id()))
+        .findFirst()
+        .orElse(null);
+
+    ConversationSummaryResponse.ParticipantInfo otherInfo = null;
+    if (otherId != null) {
+      try {
+        UserResponse other = userService.findById(otherId);
+        String name = other.name() != null ? other.name() :
+                      other.businessName() != null ? other.businessName() : other.username();
+        otherInfo = new ConversationSummaryResponse.ParticipantInfo(other.id(), name, other.profilePhotoUrl());
+      } catch (Exception e) {
+        log.warn("Could not find other participant {}", otherId);
+        otherInfo = new ConversationSummaryResponse.ParticipantInfo(otherId, "Utilisateur", null);
       }
-
-      return hexString.toString();
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("SHA-256 algorithm not available", e);
     }
+
+    long unread = otherId != null ? messageRepository.countUnread(conv.getId(), me.id()) : 0;
+
+    return new ConversationSummaryResponse(
+        conv.getId(),
+        otherInfo,
+        conv.getLastMessageText(),
+        conv.getLastMessageAt(),
+        unread
+    );
   }
 
-  private void configureStreamCredentials() {
-    System.setProperty("STREAM_KEY", streamApiKey);
-    System.setProperty("STREAM_SECRET", streamApiSecret);
+  private MessageResponse toMessageResponse(ChatMessage msg, UUID currentUserId) {
+    String senderName = null;
+    String senderImageUrl = null;
+    try {
+      UserResponse sender = userService.findById(msg.getSenderId());
+      senderName = sender.name() != null ? sender.name() :
+                   sender.businessName() != null ? sender.businessName() : sender.username();
+      senderImageUrl = sender.profilePhotoUrl();
+    } catch (Exception e) {
+      log.warn("Could not find sender {}", msg.getSenderId());
+    }
+
+    return new MessageResponse(
+        msg.getId(),
+        msg.getSenderId(),
+        senderName,
+        senderImageUrl,
+        msg.getText(),
+        msg.getCreatedAt(),
+        msg.isRead()
+    );
   }
 }
