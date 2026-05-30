@@ -27,6 +27,7 @@ public class SecurityConfig {
             .requestMatchers("/api/health").permitAll()
             .requestMatchers(HttpMethod.GET,
                 "/api/v1/users/*",
+                "/api/v1/users/search",
                 "/api/v1/offers",
                 "/api/v1/offers/*",
                 "/api/v1/offers/search",

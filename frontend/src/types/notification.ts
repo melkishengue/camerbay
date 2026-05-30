@@ -1,5 +1,6 @@
 export type NotificationType =
   | "chat_message"
+  | "new_offer"
   | "new_offer_nearby"
   | "offer_status_change"
   | "offer_review"

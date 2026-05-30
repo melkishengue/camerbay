@@ -21,11 +21,13 @@ export interface SearchFormData {
 interface OfferSearchFormProps {
   initialValues?: Partial<SearchFormData>;
   onSearch: (filters: SearchFormData) => void;
+  showCategory?: boolean;
 }
 
 export const OfferSearchForm: React.FC<OfferSearchFormProps> = ({
   initialValues,
-  onSearch
+  onSearch,
+  showCategory = true
 }) => {
   const [themeColorAccent, themeColorAccentForeground, themeColorMuted] =
     useThemeColor(["accent", "accent-foreground", "muted"]);
@@ -105,20 +107,22 @@ export const OfferSearchForm: React.FC<OfferSearchFormProps> = ({
         </SectionBlock>
 
         {/* Category */}
-        <SectionBlock
-          title="Catégorie"
-          icon={<Tag size={11} color={themeColorAccent} strokeWidth={2.5} />}
-        >
-          <CategorySelect
-            control={control}
-            name="category"
-            errors={errors}
-            label=""
-            required={false}
-            placeholder="Sélectionnez une catégorie"
-            showAllOption
-          />
-        </SectionBlock>
+        {showCategory && (
+          <SectionBlock
+            title="Catégorie"
+            icon={<Tag size={11} color={themeColorAccent} strokeWidth={2.5} />}
+          >
+            <CategorySelect
+              control={control}
+              name="category"
+              errors={errors}
+              label=""
+              required={false}
+              placeholder="Sélectionnez une catégorie"
+              showAllOption
+            />
+          </SectionBlock>
+        )}
 
         {/* Location */}
         <SectionBlock

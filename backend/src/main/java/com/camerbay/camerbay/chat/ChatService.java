@@ -1,6 +1,7 @@
 package com.camerbay.camerbay.chat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.camerbay.camerbay.auth.AuthUser;
+import com.camerbay.camerbay.notification.NotificationService;
+import com.camerbay.camerbay.notification.NotificationType;
 import com.camerbay.camerbay.user.UserResponse;
 import com.camerbay.camerbay.user.UserService;
 
@@ -24,6 +27,7 @@ public class ChatService {
   private final UserService userService;
   private final ConversationRepository conversationRepository;
   private final ChatMessageRepository messageRepository;
+  private final NotificationService notificationService;
 
   public List<ConversationSummaryResponse> getConversations(AuthUser currentUser) {
     UserResponse me = userService.findByEmail(currentUser.getEmail());
@@ -78,6 +82,23 @@ public class ChatService {
 
     conv.updateLastMessage(text, message.getCreatedAt());
     conversationRepository.save(conv);
+
+    UUID recipientId = conv.getMemberIds().stream()
+        .filter(id -> !id.equals(me.id()))
+        .findFirst()
+        .orElse(null);
+
+    if (recipientId != null) {
+      String senderDisplayName = me.name() != null ? me.name()
+          : me.businessName() != null ? me.businessName() : me.username();
+      notificationService.sendNotification(
+          recipientId,
+          NotificationType.CHAT_MESSAGE,
+          senderDisplayName,
+          text,
+          Map.of("type", "chat_message", "channelId", conversationId.toString())
+      );
+    }
 
     return toMessageResponse(message, me.id());
   }

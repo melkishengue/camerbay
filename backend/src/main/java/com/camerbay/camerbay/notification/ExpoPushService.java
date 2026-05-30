@@ -1,5 +1,6 @@
 package com.camerbay.camerbay.notification;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ExpoPushService {
 
   private static final String EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+  private static final int BATCH_SIZE = 100;
 
   private final RestClient restClient;
   private final PushTokenRepository pushTokenRepository;
@@ -48,16 +50,23 @@ public class ExpoPushService {
         })
         .toList();
 
+    List<List<Map<String, Object>>> batches = partition(messages, BATCH_SIZE);
+    for (List<Map<String, Object>> batch : batches) {
+      sendBatch(batch, expoPushTokens);
+    }
+  }
+
+  private void sendBatch(List<Map<String, Object>> batch, List<String> originalTokens) {
     try {
       String response = restClient.post()
-          .body(messages)
+          .body(batch)
           .retrieve()
           .body(String.class);
 
-      log.info("Expo push response: {}", response);
-      handleResponse(response, expoPushTokens);
+      log.info("Expo push response (batch of {}): {}", batch.size(), response);
+      handleResponse(response, originalTokens);
     } catch (Exception e) {
-      log.error("Failed to send push notification via Expo: {}", e.getMessage(), e);
+      log.error("Failed to send push notification batch via Expo: {}", e.getMessage(), e);
     }
   }
 
@@ -70,5 +79,13 @@ public class ExpoPushService {
         }
       }
     }
+  }
+
+  private <T> List<List<T>> partition(List<T> list, int size) {
+    List<List<T>> partitions = new ArrayList<>();
+    for (int i = 0; i < list.size(); i += size) {
+      partitions.add(list.subList(i, Math.min(i + size, list.size())));
+    }
+    return partitions;
   }
 }

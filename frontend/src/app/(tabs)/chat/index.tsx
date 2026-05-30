@@ -3,6 +3,7 @@ import ScreenContainer from "@/components/screenContainer";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
 import { apiClient } from "@/lib/axios-api-client";
+import { chatEvents } from "@/lib/chatEvents";
 import { useRouter } from "expo-router";
 import { Spinner } from "heroui-native";
 import { MessageCircleCode } from "lucide-react-native";
@@ -66,6 +67,11 @@ export default function InboxScreen() {
     fetchConversations();
     intervalRef.current = setInterval(() => fetchConversations(true), 10000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [userId, fetchConversations]);
+
+  useEffect(() => {
+    if (!userId) return;
+    return chatEvents.subscribe(() => fetchConversations(true));
   }, [userId, fetchConversations]);
 
   const onRefresh = useCallback(() => {

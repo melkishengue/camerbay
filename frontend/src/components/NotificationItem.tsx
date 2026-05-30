@@ -8,7 +8,8 @@ import {
   Megaphone,
   MessageCircle,
   RefreshCw,
-  Star
+  Star,
+  Tag
 } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -17,6 +18,7 @@ const ICON_MAP: Record<
   React.ComponentType<{ size: number; color: string }>
 > = {
   chat_message: MessageCircle,
+  new_offer: Tag,
   new_offer_nearby: MapPin,
   offer_status_change: RefreshCw,
   offer_review: Star,
@@ -47,6 +49,7 @@ function navigateToNotification(notification: AppNotification) {
     case "chat_message":
       if (data?.channelId) router.push(`/conversation/${data.channelId}`);
       break;
+    case "new_offer":
     case "new_offer_nearby":
     case "offer_status_change":
     case "offer_review":

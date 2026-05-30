@@ -29,8 +29,6 @@ public class OfferService {
 
   private static final int MAX_ACTIVE_OFFERS_PER_PROVIDER = 50;
 
-  private static final double NEARBY_RADIUS_METERS = 25_000;
-
   private final OfferRepository offerRepository;
   private final UserRepository userRepository;
   private final CategoryRepository categoryRepository;
@@ -65,39 +63,24 @@ public class OfferService {
 
     Offer savedOffer = offerRepository.save(offer);
 
-    notifyNearbyUsers(savedOffer, user);
+    notifyAllUsersNewOffer(savedOffer);
 
     return OfferResponse.from(savedOffer);
   }
 
-  private void notifyNearbyUsers(Offer offer, User creator) {
+  private void notifyAllUsersNewOffer(Offer offer) {
     try {
-      Location offerLocation = offer.getLocation();
-      if (offerLocation == null) {
-        return;
-      }
-
-      List<User> nearbyUsers = userRepository.findUsersWithinRadius(
-          offerLocation.getLatitude(),
-          offerLocation.getLongitude(),
-          NEARBY_RADIUS_METERS);
-
       java.util.Map<String, Object> data = java.util.Map.of(
-          "offerId", offer.getId().toString(),
-          "offerTitle", offer.getTitle());
+          "type", "new_offer",
+          "offerId", offer.getId().toString());
 
-      for (User nearbyUser : nearbyUsers) {
-        if (!nearbyUser.getId().equals(creator.getId())) {
-          notificationService.sendNotification(
-              nearbyUser.getId(),
-              NotificationType.NEW_OFFER_NEARBY,
-              "New offer nearby",
-              offer.getTitle(),
-              data);
-        }
-      }
+      notificationService.broadcastNotification(
+          NotificationType.NEW_OFFER,
+          "Nouvelle offre disponible",
+          offer.getTitle(),
+          data);
     } catch (Exception e) {
-      log.error("Failed to send nearby offer notifications: {}", e.getMessage(), e);
+      log.error("Failed to broadcast new offer notification: {}", e.getMessage(), e);
     }
   }
 

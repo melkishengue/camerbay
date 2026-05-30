@@ -1,6 +1,7 @@
 import { useChannelById } from "@/hooks/useChannelById";
 import { useChat } from "@/hooks/useChat";
 import { apiClient } from "@/lib/axios-api-client";
+import { chatEvents } from "@/lib/chatEvents";
 import { truncateTitle } from "@/lib/utils";
 import { useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams } from "expo-router";
@@ -14,7 +15,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -69,14 +70,14 @@ export default function ChatScreen() {
         headerRight: () => {
           if (displayInfo.image) {
             return (
-              <Avatar alt="User profile">
+              <Avatar alt="User profile" size="sm">
                 <Avatar.Image source={{ uri: displayInfo.image }} />
                 <Avatar.Fallback />
               </Avatar>
             );
           }
           return null;
-        },
+        }
       });
     }
   }, [displayInfo, navigation]);
@@ -152,6 +153,16 @@ export default function ChatScreen() {
     };
   }, [channelId, userId]);
 
+  useEffect(() => {
+    if (!channelId) return;
+    return chatEvents.subscribe((incomingChannelId) => {
+      if (incomingChannelId === channelId) {
+        pollNewMessages();
+        markAsRead();
+      }
+    });
+  }, [channelId, pollNewMessages, markAsRead]);
+
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
     if (!text || !channelId || sending) return;
@@ -165,7 +176,7 @@ export default function ChatScreen() {
       senderImageUrl: null,
       text,
       createdAt: new Date().toISOString(),
-      isRead: false,
+      isRead: false
     };
 
     setInputText("");
@@ -212,7 +223,9 @@ export default function ChatScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor }}>
         <View className="flex-1 items-center justify-center">
-          <Text className="text-red-500">Erreur lors du chargement du chat</Text>
+          <Text className="text-red-500">
+            Erreur lors du chargement du chat
+          </Text>
           <Text style={{ color: mutedColor }}>{error.message}</Text>
         </View>
       </SafeAreaView>
@@ -235,7 +248,9 @@ export default function ChatScreen() {
         onEndReachedThreshold={0.2}
         ListFooterComponent={
           isLoadingEarlier ? (
-            <Text style={{ color: mutedColor, textAlign: "center", padding: 8 }}>
+            <Text
+              style={{ color: mutedColor, textAlign: "center", padding: 8 }}
+            >
               Chargement...
             </Text>
           ) : null
@@ -247,7 +262,7 @@ export default function ChatScreen() {
               style={{
                 flexDirection: "row",
                 justifyContent: isMe ? "flex-end" : "flex-start",
-                marginVertical: 3,
+                marginVertical: 3
               }}
             >
               <View
@@ -258,10 +273,15 @@ export default function ChatScreen() {
                   borderBottomRightRadius: isMe ? 4 : 16,
                   borderBottomLeftRadius: isMe ? 16 : 4,
                   paddingHorizontal: 12,
-                  paddingVertical: 8,
+                  paddingVertical: 8
                 }}
               >
-                <Text style={{ color: isMe ? "#fff" : foregroundColor, fontSize: 15 }}>
+                <Text
+                  style={{
+                    color: isMe ? "#fff" : foregroundColor,
+                    fontSize: 15
+                  }}
+                >
                   {item.text}
                 </Text>
                 <Text
@@ -269,7 +289,7 @@ export default function ChatScreen() {
                     color: isMe ? "rgba(255,255,255,0.6)" : mutedColor,
                     fontSize: 11,
                     marginTop: 2,
-                    alignSelf: "flex-end",
+                    alignSelf: "flex-end"
                   }}
                 >
                   {formatTime(item.createdAt)}
@@ -289,7 +309,7 @@ export default function ChatScreen() {
           paddingBottom: 8,
           borderTopWidth: 1,
           borderTopColor: borderColor,
-          backgroundColor,
+          backgroundColor
         }}
       >
         <TextInput
@@ -308,7 +328,7 @@ export default function ChatScreen() {
             paddingVertical: 10,
             fontSize: 15,
             color: foregroundColor,
-            marginRight: 8,
+            marginRight: 8
           }}
           onSubmitEditing={handleSend}
           blurOnSubmit={false}
@@ -322,10 +342,13 @@ export default function ChatScreen() {
             borderRadius: 20,
             backgroundColor: inputText.trim() ? accentColor : borderColor,
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
-          <SendHorizontal size={20} color={inputText.trim() ? "#fff" : mutedColor} />
+          <SendHorizontal
+            size={20}
+            color={inputText.trim() ? "#fff" : mutedColor}
+          />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

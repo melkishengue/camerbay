@@ -3,11 +3,15 @@ import { CreateOfferFloatingButton } from "@/components/CreateOfferFloatingButto
 import { FullScreenModal } from "@/components/FullScreenModal";
 import { OfferCard } from "@/components/offerCard";
 import { OfferSearchForm, SearchFormData } from "@/components/OfferSearchForm";
+import { ProviderCard } from "@/components/ProviderCard";
 import ScreenContainer from "@/components/screenContainer";
 import { useAuth } from "@/hooks/useAuth";
+import { useOffers } from "@/hooks/useOffers";
+import { useProviders } from "@/hooks/useProviders";
 import { OfferFilters } from "@/types/offer";
+import { ProviderFilters } from "@/types/provider";
 import { useRouter } from "expo-router";
-import { Button, Spinner } from "heroui-native";
+import { Button, Spinner, useThemeColor } from "heroui-native";
 import { Search, SlidersHorizontal } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -18,7 +22,8 @@ import {
   Text,
   View
 } from "react-native";
-import { useOffers } from "../../../hooks/useOffers";
+
+type ActiveTab = "offers" | "providers";
 
 // eslint-disable-next-line react/display-name
 const ListFooter = React.memo(({ isLoading }: { isLoading: boolean }) => {
@@ -37,17 +42,36 @@ function OfferListScreen() {
   const [activeFilters, setActiveFilters] = useState<Partial<SearchFormData>>(
     {}
   );
+  const [activeTab, setActiveTab] = useState<ActiveTab>("offers");
+
+  const [accentColor, mutedColor] = useThemeColor(["accent", "muted"]);
 
   const {
     offers,
-    isLoading,
-    isRefreshing,
-    error,
-    hasMore,
+    isLoading: offersLoading,
+    isRefreshing: offersRefreshing,
+    error: offersError,
+    hasMore: offersHasMore,
     fetchOffers,
     refreshOffers,
-    loadMore
+    loadMore: loadMoreOffers
   } = useOffers();
+
+  const {
+    providers,
+    isLoading: providersLoading,
+    isRefreshing: providersRefreshing,
+    error: providersError,
+    hasMore: providersHasMore,
+    fetchProviders,
+    refreshProviders,
+    loadMore: loadMoreProviders
+  } = useProviders();
+
+  const isLoading = activeTab === "offers" ? offersLoading : providersLoading;
+  const isRefreshing =
+    activeTab === "offers" ? offersRefreshing : providersRefreshing;
+  const error = activeTab === "offers" ? offersError : providersError;
 
   const handleOfferPress = useCallback(
     (offerId: string) => {
@@ -56,9 +80,16 @@ function OfferListScreen() {
     [router]
   );
 
+  const handleProviderPress = useCallback(
+    (providerId: string) => {
+      router.push(`/(tabs)/offers/provider/${providerId}`);
+    },
+    [router]
+  );
+
   const handleSearch = useCallback(
     (searchData: SearchFormData) => {
-      const filters: OfferFilters = {
+      const offerFilters: OfferFilters = {
         searchText: searchData.searchQuery,
         categoryId: searchData.category?.id,
         latitude: searchData.city?.geometry.location.lat,
@@ -66,17 +97,26 @@ function OfferListScreen() {
         radiusKm: searchData.radius
       };
 
+      const providerFilters: ProviderFilters = {
+        searchText: searchData.searchQuery,
+        latitude: searchData.city?.geometry.location.lat,
+        longitude: searchData.city?.geometry.location.lng,
+        radiusKm: searchData.radius
+      };
+
       setActiveFilters(searchData);
       setIsSearchModalVisible(false);
-      fetchOffers(filters);
+      fetchOffers(offerFilters);
+      fetchProviders(providerFilters);
     },
-    [fetchOffers]
+    [fetchOffers, fetchProviders]
   );
 
   const handleClearAllFilters = useCallback(() => {
     setActiveFilters({});
     fetchOffers();
-  }, [fetchOffers]);
+    fetchProviders();
+  }, [fetchOffers, fetchProviders]);
 
   const handleClearFilter = useCallback(
     (key: keyof SearchFormData) => {
@@ -84,7 +124,7 @@ function OfferListScreen() {
         const newFilters = { ...prev };
         delete newFilters[key];
 
-        const filters: OfferFilters = {
+        const offerFilters: OfferFilters = {
           searchText: newFilters.searchQuery,
           categoryId: newFilters.category?.id,
           latitude: newFilters.city?.geometry.location.lat,
@@ -92,27 +132,56 @@ function OfferListScreen() {
           radiusKm: newFilters.radius
         };
 
-        fetchOffers(filters);
+        const providerFilters: ProviderFilters = {
+          searchText: newFilters.searchQuery,
+          latitude: newFilters.city?.geometry.location.lat,
+          longitude: newFilters.city?.geometry.location.lng,
+          radiusKm: newFilters.radius
+        };
+
+        fetchOffers(offerFilters);
+        fetchProviders(providerFilters);
         return newFilters;
       });
     },
-    [fetchOffers]
+    [fetchOffers, fetchProviders]
   );
 
   const handleEndReached = useCallback(() => {
-    if (hasMore && !isLoading) {
-      loadMore();
+    if (activeTab === "offers" && offersHasMore && !offersLoading) {
+      loadMoreOffers();
+    } else if (
+      activeTab === "providers" &&
+      providersHasMore &&
+      !providersLoading
+    ) {
+      loadMoreProviders();
     }
-  }, [hasMore, isLoading, loadMore]);
+  }, [
+    activeTab,
+    offersHasMore,
+    offersLoading,
+    providersHasMore,
+    providersLoading,
+    loadMoreOffers,
+    loadMoreProviders
+  ]);
+
+  const handleRefresh = useCallback(() => {
+    if (activeTab === "offers") {
+      refreshOffers();
+    } else {
+      refreshProviders();
+    }
+  }, [activeTab, refreshOffers, refreshProviders]);
 
   const openSearchModal = useCallback(() => setIsSearchModalVisible(true), []);
-
   const closeSearchModal = useCallback(
     () => setIsSearchModalVisible(false),
     []
   );
 
-  const renderItem = useCallback(
+  const renderOfferItem = useCallback(
     ({ item }: { item: (typeof offers)[0] }) => (
       <OfferCard
         offer={item}
@@ -123,7 +192,22 @@ function OfferListScreen() {
     [handleOfferPress, user?.id]
   );
 
-  const keyExtractor = useCallback((item: (typeof offers)[0]) => item.id, []);
+  const renderProviderItem = useCallback(
+    ({ item }: { item: (typeof providers)[0] }) => (
+      <ProviderCard provider={item} onPress={handleProviderPress} />
+    ),
+    [handleProviderPress]
+  );
+
+  const offerKeyExtractor = useCallback(
+    (item: (typeof offers)[0]) => item.id,
+    []
+  );
+
+  const providerKeyExtractor = useCallback(
+    (item: (typeof providers)[0]) => item.id,
+    []
+  );
 
   const listFooter = useMemo(
     () => <ListFooter isLoading={isLoading} />,
@@ -137,17 +221,19 @@ function OfferListScreen() {
 
   const renderEmptyState = useCallback(() => {
     if (isLoading) return null;
-
+    const label = activeTab === "offers" ? "offre" : "prestataire";
     return (
       <ScreenContainer withSchrollView>
         <View className="flex-1 justify-center items-center py-16">
           <Text className="text-gray-500 text-center mb-2">
             {hasActiveFilterKeys
-              ? "Aucune offre correspondant à vos filtres"
-              : "Aucune offre trouvée"}
+              ? `Aucun ${label} correspondant à vos filtres`
+              : `Aucun ${label} trouvé`}
           </Text>
           <Button
-            onPress={() => fetchOffers()}
+            onPress={() =>
+              activeTab === "offers" ? fetchOffers() : fetchProviders()
+            }
             variant="secondary"
             className="mt-4"
           >
@@ -156,21 +242,26 @@ function OfferListScreen() {
         </View>
       </ScreenContainer>
     );
-  }, [isLoading, hasActiveFilterKeys, fetchOffers]);
+  }, [isLoading, hasActiveFilterKeys, activeTab, fetchOffers, fetchProviders]);
 
   const refreshControl = useMemo(
     () => (
-      <RefreshControl refreshing={isRefreshing} onRefresh={refreshOffers} />
+      <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
     ),
-    [isRefreshing, refreshOffers]
+    [isRefreshing, handleRefresh]
   );
 
-  const contentContainerClassName = useMemo(
+  const offersContentContainerClassName = useMemo(
     () => (offers.length === 0 ? "flex-grow" : "pt-2 pb-28"),
     [offers.length]
   );
 
-  if (isLoading && offers.length === 0 && !error) {
+  const providersContentContainerClassName = useMemo(
+    () => (providers.length === 0 ? "flex-grow" : "pt-2 pb-28"),
+    [providers.length]
+  );
+
+  if (isLoading && offers.length === 0 && providers.length === 0 && !error) {
     return (
       <ScreenContainer>
         <View className="flex-1 justify-center items-center p-4">
@@ -181,7 +272,7 @@ function OfferListScreen() {
     );
   }
 
-  if (error && offers.length === 0) {
+  if (error && offers.length === 0 && providers.length === 0) {
     return (
       <ScreenContainer withSchrollView>
         <View className="items-center px-8 mt-60">
@@ -189,7 +280,12 @@ function OfferListScreen() {
             Oops! Une erreur s&apos;est produite
           </Text>
           {error ? <Text className="text-center mb-4">{error}</Text> : null}
-          <Button onPress={() => fetchOffers()} variant="secondary">
+          <Button
+            onPress={() =>
+              activeTab === "offers" ? fetchOffers() : fetchProviders()
+            }
+            variant="secondary"
+          >
             Reessayer
           </Button>
         </View>
@@ -229,7 +325,7 @@ function OfferListScreen() {
                 className="text-muted flex-1"
                 style={{ fontSize: 14, fontFamily: "Inter_400Regular" }}
               >
-                Rechercher des offres...
+                Rechercher...
               </Text>
               <View
                 style={{ width: 1, height: 20, backgroundColor: "#3f3f46" }}
@@ -240,6 +336,42 @@ function OfferListScreen() {
         </Pressable>
       </View>
 
+      {/* Tab switcher */}
+      {/* <View className="flex-row" style={{ gap: 8 }}> */}
+      <View className="flex-row mb-3" style={{ gap: 8 }}>
+        {/* {(["offers", "providers"] as ActiveTab[]).map((tab) => { */}
+        {([] as ActiveTab[]).map((tab) => {
+          const isActive = activeTab === tab;
+          const label = tab === "offers" ? "Offres" : "Prestataires";
+          return (
+            <Pressable
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 7,
+                borderRadius: 99,
+                backgroundColor: isActive ? accentColor : "transparent",
+                borderWidth: 1,
+                borderColor: isActive ? accentColor : "#3f3f46"
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: isActive
+                    ? "Inter_600SemiBold"
+                    : "Inter_400Regular",
+                  fontSize: 13,
+                  color: isActive ? "#fff" : mutedColor
+                }}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <ActiveFilters
         filters={activeFilters}
         onClearAll={handleClearAllFilters}
@@ -247,26 +379,33 @@ function OfferListScreen() {
         onPress={openSearchModal}
       />
 
-      {/* <CategoryList
-        categories={categories}
-        selectedId={activeFilters.category?.id}
-        onSelect={handleCategorySelect}
-      /> */}
-
-      <FlatList
-        data={offers}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        // numColumns={2}
-        columnWrapperStyle={{ gap: 10 }}
-        contentContainerClassName={contentContainerClassName}
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={listFooter}
-        refreshControl={refreshControl}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        showsVerticalScrollIndicator={false}
-      />
+      {activeTab === "offers" ? (
+        <FlatList
+          data={offers}
+          renderItem={renderOfferItem}
+          keyExtractor={offerKeyExtractor}
+          contentContainerClassName={offersContentContainerClassName}
+          ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={listFooter}
+          refreshControl={refreshControl}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          data={providers}
+          renderItem={renderProviderItem}
+          keyExtractor={providerKeyExtractor}
+          contentContainerClassName={providersContentContainerClassName}
+          ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={listFooter}
+          refreshControl={refreshControl}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <CreateOfferFloatingButton />
 
@@ -284,6 +423,7 @@ function OfferListScreen() {
           <OfferSearchForm
             initialValues={activeFilters}
             onSearch={handleSearch}
+            showCategory={activeTab === "offers"}
           />
         </FullScreenModal>
       </Modal>

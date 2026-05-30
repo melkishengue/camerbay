@@ -5,6 +5,7 @@ import * as Device from "expo-device";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { apiClient } from "@/lib/axios-api-client";
+import { chatEvents } from "@/lib/chatEvents";
 import { useAuth } from "./useAuth";
 
 // Configure how notifications appear when app is in foreground
@@ -63,6 +64,7 @@ function navigateFromNotification(
         router.push(`/conversation/${data.channelId}`);
       }
       break;
+    case "new_offer":
     case "new_offer_nearby":
     case "offer_status_change":
     case "offer_review":
@@ -98,7 +100,7 @@ export function useNotifications() {
       }
     });
 
-    // Handle notification taps when app is open
+    // Handle notification taps when app is open or backgrounded
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const { type, ...data } =
@@ -109,7 +111,17 @@ export function useNotifications() {
         navigateFromNotification(type, data);
       });
 
-    // Handle cold start — check if app was opened via notification
+    // Handle foreground notifications — update in-app state without requiring a tap
+    const foregroundSub = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        const data = (notification.request.content.data ?? {}) as Record<string, string>;
+        if (data.type === "chat_message" && data.channelId) {
+          chatEvents.emit(data.channelId);
+        }
+      }
+    );
+
+    // Handle cold start — check if app was opened via notification tap
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (response) {
         const { type, ...data } =
@@ -123,6 +135,7 @@ export function useNotifications() {
 
     return () => {
       responseListener.current?.remove();
+      foregroundSub.remove();
     };
   }, [isAuthenticated]);
 }

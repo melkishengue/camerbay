@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -17,4 +18,7 @@ public interface PushTokenRepository extends JpaRepository<PushToken, UUID> {
   List<PushToken> findByUserId(UUID userId);
 
   void deleteByExpoPushToken(String expoPushToken);
+
+  @Query("SELECT pt.expoPushToken FROM PushToken pt")
+  List<String> findAllExpoPushTokens();
 }

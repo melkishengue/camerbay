@@ -34,6 +34,12 @@ public class UserController {
   private final AuthenticationFacade authFacade;
   private final NotificationService notificationService;
 
+  @GetMapping("/search")
+  public ResponseEntity<ProviderListPaginatedResponse> searchProviders(
+      @Valid SearchProvidersRequest request) {
+    return ResponseEntity.ok(userService.searchProviders(request));
+  }
+
   @GetMapping("/me")
   public ResponseEntity<UserProfileResponse> getCurrentUser() {
     try {

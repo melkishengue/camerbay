@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,6 +69,22 @@ public class UserService {
 
     UserResponse userResponse = UserResponse.from(user);
     return UserProfileResponse.from(userResponse);
+  }
+
+  public ProviderListPaginatedResponse searchProviders(SearchProvidersRequest request) {
+    PageRequest pageable = PageRequest.of(request.page(), request.size());
+    Page<User> page;
+    if (request.hasLocation()) {
+      page = userRepository.searchProvidersWithLocation(
+          request.searchText(),
+          request.latitude(),
+          request.longitude(),
+          request.radiusMeters(),
+          pageable);
+    } else {
+      page = userRepository.searchProvidersWithoutLocation(request.searchText(), pageable);
+    }
+    return ProviderListPaginatedResponse.fromPage(page);
   }
 
   @Transactional

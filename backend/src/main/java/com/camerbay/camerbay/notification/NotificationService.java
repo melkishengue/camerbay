@@ -76,6 +76,21 @@ public class NotificationService {
   }
 
   @Transactional
+  public void broadcastNotification(NotificationType type, String title, String body, Map<String, Object> data) {
+    List<User> allUsers = userRepository.findAll();
+
+    List<Notification> notifications = allUsers.stream()
+        .map(user -> Notification.create(user, type, title, body, data))
+        .toList();
+    notificationRepository.saveAll(notifications);
+
+    List<String> allTokens = pushTokenRepository.findAllExpoPushTokens();
+    if (!allTokens.isEmpty()) {
+      expoPushService.sendPushNotification(allTokens, title, body, data);
+    }
+  }
+
+  @Transactional
   public void registerPushToken(UUID userId, RegisterPushTokenRequest request) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("User not found"));

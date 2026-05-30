@@ -6,6 +6,7 @@ import { LoginPrompt } from "@/components/LoginPrompt";
 import { ProfilePic } from "@/components/profilePic";
 import ScreenContainer from "@/components/screenContainer";
 import { SectionLabel } from "@/components/sectionBlock";
+import { useAppTheme } from "@/contexts/app-theme-context";
 import { useAuth } from "@/hooks/useAuth";
 import { usePortfolioImages } from "@/hooks/usePortfolioImages";
 import { truncateTitle } from "@/lib/utils";
@@ -13,23 +14,38 @@ import { useRouter } from "expo-router";
 import { Button, Divider, Spinner, useThemeColor } from "heroui-native";
 import {
   Bell,
+  Check,
+  ChevronDown,
   ChevronRight,
   Edit,
   FileText,
   LogOut,
+  Palette,
   Scale,
   Shield,
   Star
 } from "lucide-react-native";
 import React, { useState } from "react";
-import { Image, Modal, Text, View } from "react-native";
+import { Image, Modal, Pressable, Text, TouchableOpacity, View } from "react-native";
+
+type ThemeFamily = "default" | "sky" | "mint" | "lavender" | "alpha";
+
+const THEME_OPTIONS: { value: ThemeFamily; label: string; color: string }[] = [
+  { value: "lavender", label: "Lavande", color: "#a78bfa" },
+  { value: "sky", label: "Ciel", color: "#38bdf8" },
+  { value: "mint", label: "Menthe", color: "#34d399" },
+  { value: "alpha", label: "Alpha", color: "#f472b6" },
+  { value: "default", label: "Défaut", color: "#64748b" }
+];
 
 const AccountScreen = () => {
   const { logout, loading, isAuthenticated, user, refetchUser, updateUser } =
     useAuth();
   const { portfolioImages, updatePortfolioImages } = usePortfolioImages();
+  const { themeFamily, setThemeFamily } = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [themePickerVisible, setThemePickerVisible] = useState(false);
   const router = useRouter();
   const [themeColorAccentForeground, accentColor] = useThemeColor([
     "accent-foreground",
@@ -317,6 +333,55 @@ const AccountScreen = () => {
         </View>
       )}
 
+      {/* ── Appearance ── */}
+      <SectionLabel>Apparence</SectionLabel>
+      <View
+        className="bg-surface border border-border rounded-2xl overflow-hidden"
+        style={{ marginBottom: 24 }}
+      >
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setThemePickerVisible(true)}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            gap: 12
+          }}
+        >
+          <View className="w-11 h-11 rounded-xl bg-primary/10 items-center justify-center">
+            <Palette size={20} color="#64748b" strokeWidth={1.75} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              className="text-foreground"
+              style={{ fontFamily: "Inter_600SemiBold", fontSize: 14 }}
+            >
+              Thème
+            </Text>
+            <Text
+              className="text-muted"
+              style={{ fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}
+            >
+              {THEME_OPTIONS.find((t) => t.value === themeFamily)?.label ?? themeFamily}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                backgroundColor:
+                  THEME_OPTIONS.find((t) => t.value === themeFamily)?.color ?? "#64748b"
+              }}
+            />
+            <ChevronDown size={18} color="#64748b" strokeWidth={1.75} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
       {/* ── Legal section ── */}
       <SectionLabel>Informations légales</SectionLabel>
       <View
@@ -362,6 +427,85 @@ const AccountScreen = () => {
           </Button.Label>
         </Button>
       </View>
+
+      {/* ── Theme picker modal ── */}
+      <Modal
+        visible={themePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setThemePickerVisible(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}
+          onPress={() => setThemePickerVisible(false)}
+        >
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View
+              className="bg-surface border-t border-border"
+              style={{ borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 32 }}
+            >
+              <View
+                style={{
+                  alignItems: "center",
+                  paddingTop: 12,
+                  paddingBottom: 16,
+                  borderBottomWidth: 1
+                }}
+                className="border-border"
+              >
+                <View
+                  style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "#64748b40", marginBottom: 12 }}
+                />
+                <Text
+                  className="text-foreground"
+                  style={{ fontFamily: "Inter_700Bold", fontSize: 16 }}
+                >
+                  Choisir un thème
+                </Text>
+              </View>
+              {THEME_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setThemeFamily(option.value);
+                    setThemePickerVisible(false);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 20,
+                    paddingVertical: 14,
+                    gap: 14
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: option.color
+                    }}
+                  />
+                  <Text
+                    className="text-foreground"
+                    style={{
+                      flex: 1,
+                      fontFamily: themeFamily === option.value ? "Inter_700Bold" : "Inter_400Regular",
+                      fontSize: 15
+                    }}
+                  >
+                    {option.label}
+                  </Text>
+                  {themeFamily === option.value && (
+                    <Check size={18} color={option.color} strokeWidth={2.5} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* ── Edit modals ── */}
       <Modal

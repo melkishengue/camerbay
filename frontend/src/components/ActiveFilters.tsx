@@ -35,7 +35,7 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         contentContainerClassName="gap-2 pr-2"
       >
         {filters.searchQuery && (
-          <Chip variant="primary" size="sm" onPress={onPress}>
+          <Chip variant="primary" size="md" onPress={onPress}>
             <Search size={13} color={accentForeground} strokeWidth={2} />
             <Chip.Label>{filters.searchQuery}</Chip.Label>
             <X
@@ -48,7 +48,7 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         )}
 
         {filters.category && (
-          <Chip variant="primary" size="sm" onPress={onPress}>
+          <Chip variant="primary" size="md" onPress={onPress}>
             <Tag size={13} color={accentForeground} strokeWidth={2} />
             <Chip.Label>{filters.category?.title}</Chip.Label>
             <X
@@ -61,7 +61,7 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         )}
 
         {filters.city && (
-          <Chip variant="primary" size="sm" onPress={onPress}>
+          <Chip variant="primary" size="md" onPress={onPress}>
             <MapPin size={13} color={accentForeground} strokeWidth={2} />
             <Chip.Label>{filters.city.name}</Chip.Label>
             <X
@@ -74,7 +74,7 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         )}
 
         {filters.radius && filters.radius !== 10 && (
-          <Chip variant="primary" size="sm" onPress={onPress}>
+          <Chip variant="primary" size="md" onPress={onPress}>
             <Ruler size={13} color={accentForeground} strokeWidth={2} />
             <Chip.Label>{filters.radius} km</Chip.Label>
             <X
