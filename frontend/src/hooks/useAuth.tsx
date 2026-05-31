@@ -97,7 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       usePKCE: true,
       responseType: AuthSession.ResponseType.Code,
       extraParams: {
-        ui_locales: "fr"
+        ui_locales: "fr",
+        organization: authConfig.organizationId
       }
     },
     discovery
@@ -107,7 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     idToken: string,
     accessToken: string
   ): Promise<BackendUser> => {
-    Sentry.addBreadcrumb({ category: "auth", message: "Syncing user with backend", level: "info" });
+    Sentry.addBreadcrumb({
+      category: "auth",
+      message: "Syncing user with backend",
+      level: "info"
+    });
     try {
       await apiClient.postWithToken(
         "/api/v1/users/sync",
@@ -115,11 +120,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken
       );
 
-      Sentry.addBreadcrumb({ category: "auth", message: "Backend sync OK, fetching user", level: "info" });
+      Sentry.addBreadcrumb({
+        category: "auth",
+        message: "Backend sync OK, fetching user",
+        level: "info"
+      });
       const userResponse = await apiClient.get<BackendUser>("/api/v1/users/me");
 
       setUser(userResponse.data);
-      Sentry.setUser({ id: userResponse.data.id, email: userResponse.data.email, username: userResponse.data.username });
+      Sentry.setUser({
+        id: userResponse.data.id,
+        email: userResponse.data.email,
+        username: userResponse.data.username
+      });
       return userResponse.data;
     } catch (e) {
       Sentry.captureException(e, { tags: { auth_step: "backend_sync" } });
@@ -143,7 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         category: "auth",
         message: `OAuth response received: type=${response?.type ?? "null"}`,
         level: "info",
-        data: { response_type: response?.type ?? null, request_ready: !!request }
+        data: {
+          response_type: response?.type ?? null,
+          request_ready: !!request
+        }
       });
 
       if (response?.type === "success" && discovery) {
@@ -151,7 +167,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           const { code } = response.params;
 
-          Sentry.addBreadcrumb({ category: "auth", message: "Exchanging authorization code for tokens", level: "info" });
+          Sentry.addBreadcrumb({
+            category: "auth",
+            message: "Exchanging authorization code for tokens",
+            level: "info"
+          });
 
           const tokenResult = await AuthSession.exchangeCodeAsync(
             {
@@ -165,7 +185,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             discovery
           );
 
-          Sentry.addBreadcrumb({ category: "auth", message: "Token exchange successful", level: "info" });
+          Sentry.addBreadcrumb({
+            category: "auth",
+            message: "Token exchange successful",
+            level: "info"
+          });
 
           const tokens: TokenResult = {
             accessToken: tokenResult.accessToken,
@@ -200,7 +224,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             onActionPress: ({ hide }) => hide()
           });
         } catch (err) {
-          Sentry.captureException(err, { tags: { auth_step: "token_exchange_or_sync" } });
+          Sentry.captureException(err, {
+            tags: { auth_step: "token_exchange_or_sync" }
+          });
           setError(
             err instanceof Error ? err : new Error("Authentication failed")
           );
@@ -285,7 +311,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!request) {
-      const err = new Error("OAuth request not ready — discovery may still be loading");
+      const err = new Error(
+        "OAuth request not ready — discovery may still be loading"
+      );
       Sentry.captureException(err, { tags: { auth_step: "login_initiation" } });
       setError(err);
       return;
@@ -295,7 +323,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
-      Sentry.addBreadcrumb({ category: "auth", message: "Calling promptAsync", level: "info" });
+      Sentry.addBreadcrumb({
+        category: "auth",
+        message: "Calling promptAsync",
+        level: "info"
+      });
 
       await promptAsync({
         createTask: false,
