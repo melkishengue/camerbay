@@ -1,9 +1,10 @@
 import { apiClient } from "@/lib/axios-api-client";
 import { Offer, PaginatedOfferResponse } from "@/types/offer";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 const LIKED_IDS_KEY = ["liked-ids"];
+export const LIKED_OFFERS_KEY = ["liked-offers"];
 
 // ─── Shared liked-IDs cache ───────────────────────────────────────────────────
 
@@ -46,14 +47,20 @@ export const useLikeToggle = () => {
     mutationFn: (offerId: string) =>
       apiClient.post(`/api/v1/offers/${offerId}/like`),
     onMutate: (offerId) => addLikedId(queryClient, offerId),
-    onError: (_err, offerId) => removeLikedId(queryClient, offerId)
+    onError: (_err, offerId) => removeLikedId(queryClient, offerId),
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: LIKED_OFFERS_KEY });
+    }
   });
 
   const unlikeMutation = useMutation({
     mutationFn: (offerId: string) =>
       apiClient.delete(`/api/v1/offers/${offerId}/like`),
     onMutate: (offerId) => removeLikedId(queryClient, offerId),
-    onError: (_err, offerId) => addLikedId(queryClient, offerId)
+    onError: (_err, offerId) => addLikedId(queryClient, offerId),
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: LIKED_OFFERS_KEY });
+    }
   });
 
   const toggleLike = useCallback(
@@ -72,69 +79,51 @@ export const useLikeToggle = () => {
 
 // ─── Liked offers list ────────────────────────────────────────────────────────
 
-export const useLikedOffers = () => {
+export const useLikedOffers = (enabled = true) => {
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(0);
-  const [allOffers, setAllOffers] = useState<Offer[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
 
-  const fetchPage = useCallback(
-    async (pageNum: number, replace = false) => {
-      try {
-        if (replace) {
-          setIsRefreshing(true);
-        } else {
-          setIsLoading(true);
-        }
-        setError(null);
-
-        const response = await apiClient.get<PaginatedOfferResponse>(
-          `/api/v1/users/me/liked-offers?page=${pageNum}&size=20`
-        );
-
-        const data = response.data;
-
-        // Sync fetched IDs into the shared liked-IDs cache
-        data.content.forEach((offer) => addLikedId(queryClient, offer.id));
-
-        if (replace) {
-          setAllOffers(data.content);
-        } else {
-          setAllOffers((prev) =>
-            pageNum === 0 ? data.content : [...prev, ...data.content]
-          );
-        }
-        setHasMore(data.hasNext ?? false);
-        setPage(pageNum);
-      } catch (e: any) {
-        setError(e?.message ?? "Erreur lors du chargement");
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch
+  } = useInfiniteQuery({
+    queryKey: LIKED_OFFERS_KEY,
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await apiClient.get<PaginatedOfferResponse>(
+        `/api/v1/users/me/liked-offers?page=${pageParam}&size=20`
+      );
+      const data = response.data;
+      data.content.forEach((offer) => addLikedId(queryClient, offer.id));
+      return data;
     },
-    [queryClient]
-  );
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNext ? lastPage.pageNumber + 1 : undefined,
+    initialPageParam: 0,
+    enabled,
+    staleTime: 0
+  });
 
-  const refresh = useCallback(() => fetchPage(0, true), [fetchPage]);
+  const offers: Offer[] = data?.pages.flatMap((page) => page.content) ?? [];
 
+  const load = useCallback(() => { refetch(); }, [refetch]);
+  const refresh = useCallback(async () => { await refetch(); }, [refetch]);
   const loadMore = useCallback(() => {
-    if (!isLoading && hasMore) {
-      fetchPage(page + 1);
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [isLoading, hasMore, page, fetchPage]);
-
-  const load = useCallback(() => fetchPage(0), [fetchPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
-    offers: allOffers,
-    isLoading,
-    isRefreshing,
-    error,
-    hasMore,
+    offers,
+    isLoading: isLoading || isFetchingNextPage,
+    isRefreshing: isRefetching && !isFetchingNextPage,
+    error: error ? (error as Error).message : null,
+    hasMore: !!hasNextPage,
     load,
     refresh,
     loadMore

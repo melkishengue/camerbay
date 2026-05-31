@@ -1,5 +1,6 @@
 import { FullScreenOfferForm } from "@/components/FullScreenOfferForm";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "expo-router";
 import { useChannelById } from "@/hooks/useChannelById";
 import { Offer } from "@/types/offer";
 import { Card, PressableFeedback, useThemeColor } from "heroui-native";
@@ -84,16 +85,16 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
 
     const { isAuthenticated, login } = useAuth();
     const { startChatChannel } = useChannelById();
+    const router = useRouter();
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const isLiked = useIsLiked(offer.id);
 
     const isOwner = currentUserId != null && currentUserId === offer.providerId;
 
     const pricingItems = offer.pricingItems ?? [];
-    const minPrice =
-      pricingItems.length > 1
-        ? Math.min(...pricingItems.map((i) => i.price.amount))
-        : pricingItems[0]?.price.amount;
+    const minPrice = pricingItems.length > 0
+      ? Math.min(...pricingItems.map((i) => i.price.amount))
+      : undefined;
     const displayCurrency = pricingItems[0]?.price.currency ?? "";
     const rating = offer.providerRating || 3;
 
@@ -110,6 +111,10 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
         return;
       }
       onLike?.(offer.id, isLiked);
+    };
+
+    const handleProviderPress = () => {
+      router.push(`/(tabs)/offers/provider/${offer.providerId}`);
     };
 
     const handleMessage = async () => {
@@ -211,7 +216,7 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
 
             {/* Action strip */}
             <View className="bg-divider" style={{ width: 0.5 }} />
-            <View className="w-11 items-center justify-around shrink-0">
+            <View className="w-10 items-center justify-around shrink-0">
               {isOwner ? (
                 <ActionButton onPress={handleEdit} label="Modifier">
                   <Pencil size={17} color={successColor} strokeWidth={1.8} />
@@ -233,6 +238,46 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
                       color={mutedColor}
                       strokeWidth={1.8}
                     />
+                  </ActionButton>
+                  <ActionDivider />
+                  <ActionButton
+                    onPress={handleProviderPress}
+                    label="Prestataire"
+                  >
+                    {offer.providerPhotoImageUrl ? (
+                      <Image
+                        source={{ uri: offer.providerPhotoImageUrl }}
+                        style={{ width: 22, height: 22, borderRadius: 11 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: successColor,
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 9,
+                            fontFamily: "Inter_600SemiBold"
+                          }}
+                        >
+                          {(
+                            offer.providerName ??
+                            offer.providerBusinessName ??
+                            "?"
+                          )
+                            .charAt(0)
+                            .toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
                   </ActionButton>
                 </>
               )}

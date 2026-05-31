@@ -6,7 +6,7 @@ import { useLikedOffers, useLikeToggle } from "@/hooks/useLikes";
 import { useRouter } from "expo-router";
 import { Button, Spinner } from "heroui-native";
 import { Heart } from "lucide-react-native";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import { FlatList, RefreshControl, Text, View } from "react-native";
 
 export default function LikesScreen() {
@@ -14,13 +14,7 @@ export default function LikesScreen() {
   const { user, isAuthenticated } = useAuth();
   const { toggleLike } = useLikeToggle();
   const { offers, isLoading, isRefreshing, error, load, refresh, loadMore } =
-    useLikedOffers();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      load();
-    }
-  }, [isAuthenticated, load]);
+    useLikedOffers(isAuthenticated);
 
   const handleOfferPress = useCallback(
     (offerId: string) => {
