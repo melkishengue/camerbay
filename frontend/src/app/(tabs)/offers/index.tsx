@@ -6,6 +6,7 @@ import { OfferSearchForm, SearchFormData } from "@/components/OfferSearchForm";
 import { ProviderCard } from "@/components/ProviderCard";
 import ScreenContainer from "@/components/screenContainer";
 import { useAuth } from "@/hooks/useAuth";
+import { useLikeToggle } from "@/hooks/useLikes";
 import { useOffers } from "@/hooks/useOffers";
 import { useProviders } from "@/hooks/useProviders";
 import { OfferFilters } from "@/types/offer";
@@ -38,6 +39,7 @@ const ListFooter = React.memo(({ isLoading }: { isLoading: boolean }) => {
 function OfferListScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const { toggleLike } = useLikeToggle();
   const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Partial<SearchFormData>>(
     {}
@@ -187,9 +189,10 @@ function OfferListScreen() {
         offer={item}
         currentUserId={user?.id}
         onPress={handleOfferPress}
+        onLike={toggleLike}
       />
     ),
-    [handleOfferPress, user?.id]
+    [handleOfferPress, user?.id, toggleLike]
   );
 
   const renderProviderItem = useCallback(

@@ -1,9 +1,9 @@
-import { ThemeToggle } from "@/components/theme-toggle";
+import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadChatMessages } from "@/hooks/useChatUnreadMessages";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { useThemeColor } from "heroui-native";
-import { MessageCircleCode, Search, User, List } from "lucide-react-native";
+import { MessageCircleCode, User, List, Heart } from "lucide-react-native";
 import React, { useCallback, useEffect } from "react";
 import { Platform } from "react-native";
 
@@ -21,6 +21,8 @@ export default function TabsLayout() {
   const router = useRouter();
   const { isChatLoggedIn, unreadCount } = useUnreadChatMessages();
 
+  const renderNotificationBell = useCallback(() => <NotificationBell />, []);
+
   useEffect(() => {
     if (loading) return;
 
@@ -35,7 +37,7 @@ export default function TabsLayout() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [user, user?.onBoardingCompleted, loading, pathname]);
+  }, [user, user?.onBoardingCompleted, loading, pathname, router]);
 
   return (
     <Tabs
@@ -84,6 +86,20 @@ export default function TabsLayout() {
           title: "Offres",
           tabBarIcon: ({ color, focused }) => (
             <List size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+          )
+        }}
+      />
+      <Tabs.Screen
+        name="likes"
+        options={{
+          title: "Favoris",
+          tabBarIcon: ({ color, focused }) => (
+            <Heart
+              size={22}
+              color={color}
+              fill={focused ? color : "none"}
+              strokeWidth={2}
+            />
           )
         }}
       />

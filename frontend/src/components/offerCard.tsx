@@ -3,8 +3,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useChannelById } from "@/hooks/useChannelById";
 import { Offer } from "@/types/offer";
 import { Card, PressableFeedback, useThemeColor } from "heroui-native";
+import { useIsLiked } from "@/hooks/useLikes";
 import {
-  Bookmark,
   Heart,
   MapPin,
   MessageCircle,
@@ -18,8 +18,7 @@ interface OfferCardProps {
   offer: Offer;
   currentUserId?: string;
   onPress?: (offerId: string) => void;
-  onBookmark?: (offerId: string) => void;
-  onLike?: (offerId: string) => void;
+  onLike?: (offerId: string, currentlyLiked: boolean) => void;
 }
 
 function timeAgo(date: string) {
@@ -72,7 +71,7 @@ const ActionButton = ({
 );
 
 export const OfferCard: React.FC<OfferCardProps> = React.memo(
-  ({ offer, currentUserId, onPress, onBookmark, onLike }) => {
+  ({ offer, currentUserId, onPress, onLike }) => {
     const [successColor, warningColor, mutedColor, surfaceColor, dividerColor] =
       useThemeColor([
         "success",
@@ -86,6 +85,7 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
     const { isAuthenticated, login } = useAuth();
     const { startChatChannel } = useChannelById();
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const isLiked = useIsLiked(offer.id);
 
     const isOwner = currentUserId != null && currentUserId === offer.providerId;
 
@@ -103,6 +103,14 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
         : "Devis";
 
     const handleEdit = () => setIsEditModalVisible(true);
+
+    const handleLike = () => {
+      if (!isAuthenticated) {
+        login();
+        return;
+      }
+      onLike?.(offer.id, isLiked);
+    };
 
     const handleMessage = async () => {
       if (!isAuthenticated) {
@@ -210,18 +218,13 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
                 </ActionButton>
               ) : (
                 <>
-                  <ActionButton
-                    onPress={() => onBookmark?.(offer.id)}
-                    label="Enregistrer"
-                  >
-                    <Bookmark size={17} color={mutedColor} strokeWidth={1.8} />
-                  </ActionButton>
-                  <ActionDivider />
-                  <ActionButton
-                    onPress={() => onLike?.(offer.id)}
-                    label="J'aime"
-                  >
-                    <Heart size={17} color={mutedColor} strokeWidth={1.8} />
+                  <ActionButton onPress={handleLike} label="J'aime">
+                    <Heart
+                      size={17}
+                      color={isLiked ? "#ef4444" : mutedColor}
+                      fill={isLiked ? "#ef4444" : "transparent"}
+                      strokeWidth={1.8}
+                    />
                   </ActionButton>
                   <ActionDivider />
                   <ActionButton onPress={handleMessage} label="Message">

@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 public record OfferListPaginatedResponse(
     List<OfferResponse> content, Long offset, int pageNumber, Boolean hasNext, Boolean hasPrevious, int pageSize) {
 
-  static OfferListPaginatedResponse fromPage(Page<Offer> page) {
+  public static OfferListPaginatedResponse fromPage(Page<Offer> page) {
     return new OfferListPaginatedResponse(page.getContent().stream().map(OfferResponse::from).toList(),
         page.getPageable().getOffset(),
         page.getPageable().getPageNumber(),

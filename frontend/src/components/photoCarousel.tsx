@@ -73,7 +73,7 @@ export function PhotoCarousel({ photos, onPhotoPress }: PhotoCarouselProps) {
             <Image
               source={{ uri: photo }}
               style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           </Pressable>
         ))}

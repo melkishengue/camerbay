@@ -32,6 +32,7 @@ export interface Offer {
   createdAt: string;
   updatedAt: string;
   location: Location;
+  isLiked?: boolean;
 }
 
 export interface CreateOfferRequest {
@@ -72,6 +73,15 @@ export interface OfferListResponse {
   totalElements: number;
   totalPages: number;
   currentPage: number;
+  pageSize: number;
+}
+
+export interface PaginatedOfferResponse {
+  content: Offer[];
+  offset: number;
+  pageNumber: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
   pageSize: number;
 }
 
