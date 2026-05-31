@@ -84,7 +84,7 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
         "foreground"
       ]);
 
-    const { isAuthenticated, login } = useAuth();
+    const { isAuthenticated } = useAuth();
     const { startChatChannel } = useChannelById();
     const router = useRouter();
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -109,7 +109,7 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
 
     const handleLike = () => {
       if (!isAuthenticated) {
-        login();
+        router.push("/(tabs)/account");
         return;
       }
       onLike?.(offer.id, isLiked);
@@ -121,7 +121,7 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
 
     const handleMessage = async () => {
       if (!isAuthenticated) {
-        login();
+        router.push("/(tabs)/account");
         return;
       }
       await startChatChannel(offer.providerId);

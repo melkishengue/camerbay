@@ -14,7 +14,7 @@ import {
   useEffect,
   useState
 } from "react";
-import { authConfig } from "../config/auth.config";
+import { OAUTH_PROVIDERS } from "../config/providers.config";
 import { apiClient } from "../lib/axios-api-client";
 
 export interface BackendUserUpdate {
@@ -33,8 +33,8 @@ export interface UserInfo {
   sub: string;
   email?: string;
   name?: string;
+  picture?: string;
   preferred_username?: string;
-  "urn:zitadel:iam:org:project:roles"?: Record<string, Record<string, string>>;
 }
 
 export interface BackendUser {
@@ -53,13 +53,26 @@ export interface BackendUser {
   description?: string;
 }
 
+/**
+ * App tokens — issued by the backend after validating the provider token.
+ * accessToken: backend-issued JWT used as Bearer for all API calls.
+ * idToken:     provider idToken (OIDC providers only, e.g. Google/Apple).
+ *              Stored to populate oidcUser; absent for OAuth-only providers (e.g. GitHub).
+ */
 interface TokenResult {
   accessToken: string;
   refreshToken?: string;
-  idToken: string;
+  idToken?: string;
   tokenType: string;
   expiresIn?: string;
   issuedAt?: number;
+  provider: string;
+}
+
+interface AppLoginResponse {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
 }
 
 interface AuthContextType {
@@ -70,7 +83,7 @@ interface AuthContextType {
   loading: boolean;
   error: Error | null;
   updateUser: (user: BackendUserUpdate) => Promise<void>;
-  login: () => Promise<void>;
+  login: (providerId: string) => Promise<void>;
   logout: () => Promise<void>;
   refetchUser: () => Promise<void>;
 }
@@ -85,177 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  // Create the discovery configuration from your authConfig
-  const discovery = AuthSession.useAutoDiscovery(authConfig.issuer as string);
-
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: authConfig.clientId,
-      scopes: authConfig.scopes,
-      prompt: AuthSession.Prompt.Login,
-      redirectUri: authConfig.redirectUrl,
-      usePKCE: true,
-      responseType: AuthSession.ResponseType.Code,
-      extraParams: {
-        ui_locales: "fr",
-        organization: authConfig.organizationId
-      }
-    },
-    discovery
-  );
-
-  const syncAndFetchUser = async (
-    idToken: string,
-    accessToken: string
-  ): Promise<BackendUser> => {
-    Sentry.addBreadcrumb({
-      category: "auth",
-      message: "Syncing user with backend",
-      level: "info"
-    });
-    try {
-      await apiClient.postWithToken(
-        "/api/v1/users/sync",
-        { idToken },
-        accessToken
-      );
-
-      Sentry.addBreadcrumb({
-        category: "auth",
-        message: "Backend sync OK, fetching user",
-        level: "info"
-      });
-      const userResponse = await apiClient.get<BackendUser>("/api/v1/users/me");
-
-      setUser(userResponse.data);
-      Sentry.setUser({
-        id: userResponse.data.id,
-        email: userResponse.data.email,
-        username: userResponse.data.username
-      });
-      return userResponse.data;
-    } catch (e) {
-      Sentry.captureException(e, { tags: { auth_step: "backend_sync" } });
-      throw e;
-    }
-  };
-
   useEffect(() => {
     apiClient.setSessionExpiredHandler(() => {
-      // Clear state immediately
       setTokens(null);
       setOidcUser(null);
       setUser(null);
       setError(new Error("Session expired. Please login again."));
     });
   }, []);
-
-  useEffect(() => {
-    const handleResponse = async () => {
-      Sentry.addBreadcrumb({
-        category: "auth",
-        message: `OAuth response received: type=${response?.type ?? "null"}`,
-        level: "info",
-        data: {
-          response_type: response?.type ?? null,
-          request_ready: !!request
-        }
-      });
-
-      if (response?.type === "success" && discovery) {
-        try {
-          setLoading(true);
-          const { code } = response.params;
-
-          Sentry.addBreadcrumb({
-            category: "auth",
-            message: "Exchanging authorization code for tokens",
-            level: "info"
-          });
-
-          const tokenResult = await AuthSession.exchangeCodeAsync(
-            {
-              clientId: authConfig.clientId,
-              code,
-              redirectUri: authConfig.redirectUrl,
-              extraParams: request?.codeVerifier
-                ? { code_verifier: request.codeVerifier }
-                : {}
-            },
-            discovery
-          );
-
-          Sentry.addBreadcrumb({
-            category: "auth",
-            message: "Token exchange successful",
-            level: "info"
-          });
-
-          const tokens: TokenResult = {
-            accessToken: tokenResult.accessToken,
-            refreshToken: tokenResult.refreshToken,
-            idToken: tokenResult.idToken || "",
-            tokenType: tokenResult.tokenType || "Bearer",
-            expiresIn: tokenResult.expiresIn?.toString(),
-            issuedAt: tokenResult.issuedAt
-          };
-
-          const decodedUser: UserInfo = jwtDecode(tokens.idToken);
-          setOidcUser(decodedUser);
-
-          await SecureStore.setItemAsync("auth_tokens", JSON.stringify(tokens));
-
-          const backendUser = await syncAndFetchUser(
-            tokens.idToken,
-            tokens.accessToken
-          );
-
-          // Set tokens only after backend sync succeeds — prevents isAuthenticated
-          // flipping to true too early, which would fire notification queries
-          // concurrently with sync and cause onSessionExpired to be called mid-login.
-          setTokens(tokens);
-
-          toast.show({
-            duration: 5000,
-            variant: "default",
-            label: "Bienvenue",
-            description: `Bienvenue sur Camerbay, ${backendUser.username}`,
-            actionLabel: "Fermer",
-            onActionPress: ({ hide }) => hide()
-          });
-        } catch (err) {
-          Sentry.captureException(err, {
-            tags: { auth_step: "token_exchange_or_sync" }
-          });
-          setError(
-            err instanceof Error ? err : new Error("Authentication failed")
-          );
-          setTokens(null);
-          setOidcUser(null);
-          setUser(null);
-        } finally {
-          setLoading(false);
-        }
-      } else if (response?.type === "error") {
-        const errMsg = response.error?.message || "Authentication failed";
-        Sentry.captureException(new Error(errMsg), {
-          tags: { auth_step: "oauth_response" },
-          extra: { oauth_error: response.error }
-        });
-        setError(new Error(errMsg));
-        setLoading(false);
-      } else if (response?.type === "cancel" || response?.type === "dismiss") {
-        Sentry.addBreadcrumb({
-          category: "auth",
-          message: `OAuth flow ${response.type} by user`,
-          level: "info"
-        });
-        setLoading(false);
-      }
-    };
-
-    handleResponse();
-  }, [response, discovery]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -265,25 +115,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (savedTokensString) {
           const savedTokens: TokenResult = JSON.parse(savedTokensString);
-          const decodedUser: UserInfo = jwtDecode(savedTokens.idToken);
 
           setTokens(savedTokens);
-          setOidcUser(decodedUser);
 
-          // Fetch full user from backend
+          // Populate oidcUser from provider idToken if present (OIDC providers only)
+          if (savedTokens.idToken) {
+            try {
+              setOidcUser(jwtDecode<UserInfo>(savedTokens.idToken));
+            } catch {
+              // Non-OIDC provider or malformed token — oidcUser stays null
+            }
+          }
+
           try {
             const userResponse =
               await apiClient.get<BackendUser>("/api/v1/users/me");
             setUser(userResponse.data);
           } catch (err) {
-            const shouldLogout =
-              err instanceof AxiosError && err.status === 404;
-
-            if (shouldLogout) {
+            if (err instanceof AxiosError && err.status === 404) {
               await logout(true);
               return;
             }
-
             setError(
               err instanceof Error ? err : new Error("Failed to load user")
             );
@@ -297,51 +149,166 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     bootstrap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async () => {
-    Sentry.addBreadcrumb({
-      category: "auth",
-      message: "Login initiated",
-      level: "info",
-      data: {
-        request_ready: !!request,
-        discovery_ready: !!discovery
+  const login = useCallback(
+    async (providerId: string) => {
+      const provider = OAUTH_PROVIDERS[providerId];
+      if (!provider) {
+        setError(new Error(`Unknown provider: ${providerId}`));
+        return;
       }
-    });
-
-    if (!request) {
-      const err = new Error(
-        "OAuth request not ready — discovery may still be loading"
-      );
-      Sentry.captureException(err, { tags: { auth_step: "login_initiation" } });
-      setError(err);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
 
       Sentry.addBreadcrumb({
         category: "auth",
-        message: "Calling promptAsync",
+        message: `Login initiated with provider: ${providerId}`,
         level: "info"
       });
 
-      await promptAsync({
-        createTask: false,
-        showInRecents: true
-      });
-    } catch (error) {
-      Sentry.captureException(error, { tags: { auth_step: "prompt_async" } });
-      setError(error instanceof Error ? error : new Error("Login failed"));
-      setTokens(null);
-      setOidcUser(null);
-      setUser(null);
-      setLoading(false);
-    }
-  }, [promptAsync, request, discovery]);
+      try {
+        setLoading(true);
+        setError(null);
+
+        // ── Step 1: OAuth with the external provider ──────────────────────────
+        const discovery = await AuthSession.fetchDiscoveryAsync(
+          provider.discoveryUrl
+        );
+        const clientId = provider.getClientId();
+        const redirectUri = provider.getRedirectUri();
+
+        const request = new AuthSession.AuthRequest({
+          clientId,
+          scopes: provider.scopes,
+          redirectUri,
+          usePKCE: true,
+          responseType: AuthSession.ResponseType.Code,
+          extraParams: provider.extraParams
+        });
+
+        const result = await request.promptAsync(discovery, {
+          createTask: false,
+          showInRecents: true
+        });
+
+        if (result.type === "error") {
+          const errMsg = result.error?.message || "Authentication failed";
+          Sentry.captureException(new Error(errMsg), {
+            tags: { auth_step: "oauth_response" },
+            extra: { oauth_error: result.error }
+          });
+          setError(new Error(errMsg));
+          return;
+        }
+
+        if (result.type === "cancel" || result.type === "dismiss") {
+          Sentry.addBreadcrumb({
+            category: "auth",
+            message: `OAuth flow ${result.type} by user`,
+            level: "info"
+          });
+          return;
+        }
+
+        if (result.type !== "success") return;
+
+        // ── Step 2: Exchange auth code for provider tokens ────────────────────
+        Sentry.addBreadcrumb({
+          category: "auth",
+          message: "Exchanging authorization code for provider tokens",
+          level: "info"
+        });
+
+        const providerTokens = await AuthSession.exchangeCodeAsync(
+          {
+            clientId,
+            code: result.params.code,
+            redirectUri,
+            extraParams: request.codeVerifier
+              ? { code_verifier: request.codeVerifier }
+              : {}
+          },
+          discovery
+        );
+
+        // ── Step 3: Exchange provider tokens for backend app tokens ───────────
+        // Backend validates the provider token (Google → JWKS, GitHub → API call,
+        // etc.), syncs/creates the user, and issues its own JWT + refresh token.
+        Sentry.addBreadcrumb({
+          category: "auth",
+          message: "Exchanging provider tokens with backend",
+          level: "info"
+        });
+
+        const appLoginResponse = await apiClient.postPublic<AppLoginResponse>(
+          "/api/v1/auth/login",
+          {
+            provider: providerId,
+            idToken: providerTokens.idToken,       // OIDC providers (Google, Apple)
+            accessToken: providerTokens.accessToken // all providers (GitHub uses this)
+          }
+        );
+
+        const appTokens: TokenResult = {
+          accessToken: appLoginResponse.data.accessToken,
+          refreshToken: appLoginResponse.data.refreshToken,
+          idToken: providerTokens.idToken ?? undefined, // kept for oidcUser only
+          tokenType: "Bearer",
+          expiresIn: appLoginResponse.data.expiresIn?.toString(),
+          issuedAt: Math.floor(Date.now() / 1000),
+          provider: providerId
+        };
+
+        // Decode oidcUser from provider idToken (OIDC providers only)
+        if (providerTokens.idToken) {
+          try {
+            setOidcUser(jwtDecode<UserInfo>(providerTokens.idToken));
+          } catch {
+            // Non-OIDC provider — oidcUser stays null
+          }
+        }
+
+        await SecureStore.setItemAsync("auth_tokens", JSON.stringify(appTokens));
+
+        // ── Step 4: Fetch the backend user ────────────────────────────────────
+        // Backend synced/created the user during /auth/login, so /users/me is ready.
+        const userResponse = await apiClient.get<BackendUser>(
+          "/api/v1/users/me"
+        );
+        setUser(userResponse.data);
+        Sentry.setUser({
+          id: userResponse.data.id,
+          email: userResponse.data.email,
+          username: userResponse.data.username
+        });
+
+        // Set tokens only after user fetch — prevents isAuthenticated flipping true
+        // early and firing concurrent notification queries mid-login.
+        setTokens(appTokens);
+
+        toast.show({
+          duration: 5000,
+          variant: "default",
+          label: "Bienvenue",
+          description: `Bienvenue sur Camerbay, ${userResponse.data.username}`,
+          actionLabel: "Fermer",
+          onActionPress: ({ hide }) => hide()
+        });
+      } catch (err) {
+        Sentry.captureException(err, {
+          tags: { auth_step: "login" },
+          extra: { providerId }
+        });
+        setError(err instanceof Error ? err : new Error("Login failed"));
+        setTokens(null);
+        setOidcUser(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
 
   const logout = useCallback(
     async (showMessage = false) => {
@@ -349,25 +316,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         setError(null);
 
-        if (tokens?.accessToken && discovery?.revocationEndpoint) {
-          try {
-            await AuthSession.revokeAsync(
-              {
-                clientId: authConfig.clientId,
-                token: tokens.accessToken
-              },
-              discovery
-            );
-          } catch (revokeError: any) {
-            // Ignore JSON parse errors - empty response is expected and means success
-            if (
-              revokeError?.message?.includes("JSON Parse error") ||
-              revokeError?.message?.includes("Unexpected end of input")
-            ) {
-            } else {
-            }
-            // Continue with logout even if revocation fails
-          }
+        // Best-effort backend logout (invalidates refresh token server-side)
+        try {
+          await apiClient.postPublic("/api/v1/auth/logout", {
+            refreshToken: tokens?.refreshToken
+          });
+        } catch {
+          // Continue logout even if backend call fails
         }
 
         // Unregister push token
@@ -382,13 +337,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Continue logout even if push token cleanup fails
         }
 
-        // Clear all state immediately
         setTokens(null);
         setOidcUser(null);
         setUser(null);
         Sentry.setUser(null);
 
-        // Clear secure store
         await SecureStore.deleteItemAsync("auth_tokens");
 
         if (showMessage) {
@@ -401,13 +354,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             onActionPress: ({ hide }) => hide()
           });
         }
-      } catch (error) {
-        setError(error instanceof Error ? error : new Error("Logout failed"));
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("Logout failed"));
       } finally {
         setLoading(false);
       }
     },
-    [tokens, discovery]
+    [tokens, toast]
   );
 
   const refetchUser = useCallback(async () => {
@@ -420,16 +373,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
-      // API client handles token refresh automatically
       const response = await apiClient.get<BackendUser>("/api/v1/users/me");
       setUser(response.data);
     } catch (err) {
-      // Check if it's a session expired error
       if (err instanceof Error && err.message.includes("Session expired")) {
         await logout();
         return;
       }
-
       setError(
         err instanceof Error ? err : new Error("Failed to refetch user")
       );
@@ -442,7 +392,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await apiClient.put<BackendUser>(`/api/v1/users/me`, {
       ...update
     });
-
     setUser(response.data);
   };
 

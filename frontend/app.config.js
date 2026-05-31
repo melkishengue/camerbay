@@ -1,0 +1,175 @@
+// Dynamic Expo config — replaces app.json so we can read env vars at build time.
+// Expo will prefer this file over app.json when both exist.
+
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "";
+const googleAndroidClientId =
+  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "";
+
+// Reversed client ID scheme required for Google OAuth redirect on iOS/Android.
+// Format: com.googleusercontent.apps.{client-id-prefix}
+const reversedIosClientId = googleIosClientId
+  ? `com.googleusercontent.apps.${googleIosClientId.replace(".apps.googleusercontent.com", "")}`
+  : null;
+
+const reversedAndroidClientId = googleAndroidClientId
+  ? `com.googleusercontent.apps.${googleAndroidClientId.replace(".apps.googleusercontent.com", "")}`
+  : null;
+
+/** @type {import('@expo/config').ExpoConfig} */
+const config = {
+  name: "Camerbay",
+  slug: "camerbay",
+  version: "1.0.0",
+  orientation: "portrait",
+  icon: "./assets/images/icon.png",
+  scheme: "com.camerbay.app",
+  userInterfaceStyle: "automatic",
+  newArchEnabled: true,
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: "com.camerbay.app",
+    googleServicesFile: "./GoogleService-Info.plist",
+    infoPlist: {
+      NSLocationWhenInUseUsageDescription:
+        "This app needs access to your location to show nearby services and providers.",
+      NSLocationAlwaysAndWhenInUseUsageDescription:
+        "This app needs access to your location to show nearby services and providers.",
+      CFBundleURLTypes: [
+        { CFBundleURLSchemes: ["com.camerbay.app"] },
+        // Required for Google OAuth redirect
+        ...(reversedIosClientId
+          ? [{ CFBundleURLSchemes: [reversedIosClientId] }]
+          : [])
+      ]
+    }
+  },
+  developmentClient: {
+    silentLaunch: true
+  },
+  android: {
+    package: "com.camerbay.app",
+    googleServicesFile: "./google-services.json",
+    permissions: [
+      "android.permission.ACCESS_COARSE_LOCATION",
+      "android.permission.ACCESS_FINE_LOCATION",
+      "android.permission.RECORD_AUDIO",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+      "android.permission.READ_MEDIA_IMAGES",
+      "android.permission.READ_MEDIA_VIDEO",
+      "android.permission.READ_MEDIA_AUDIO"
+    ],
+    adaptiveIcon: {
+      backgroundColor: "#E6F4FE",
+      foregroundImage: "./assets/images/android-icon-foreground.png",
+      backgroundImage: "./assets/images/android-icon-background.png",
+      monochromeImage: "./assets/images/android-icon-monochrome.png"
+    },
+    intentFilters: [
+      {
+        action: "VIEW",
+        data: [{ scheme: "com.camerbay.app" }],
+        category: ["BROWSABLE", "DEFAULT"]
+      },
+      // Required for Google OAuth redirect on Android
+      ...(reversedAndroidClientId
+        ? [
+            {
+              action: "VIEW",
+              data: [{ scheme: reversedAndroidClientId }],
+              category: ["BROWSABLE", "DEFAULT"]
+            }
+          ]
+        : [])
+    ]
+  },
+  web: {
+    bundler: "metro",
+    output: "static",
+    favicon: "./assets/images/favicon.png"
+  },
+  plugins: [
+    [
+      "expo-location",
+      {
+        locationAlwaysAndWhenInUsePermission:
+          "Allow $(PRODUCT_NAME) to use your location to find nearby services.",
+        locationWhenInUsePermission:
+          "Allow $(PRODUCT_NAME) to use your location to find nearby services.",
+        isIosBackgroundLocationEnabled: false
+      }
+    ],
+    "expo-router",
+    [
+      "expo-build-properties",
+      {
+        ios: {
+          newArchEnabled: true,
+          deploymentTarget: "15.1"
+        },
+        android: {
+          newArchEnabled: true,
+          compileSdkVersion: 36,
+          targetSdkVersion: 36,
+          minSdkVersion: 24,
+          buildToolsVersion: "35.0.0",
+          mainActivity: {
+            launchMode: "singleTask"
+          }
+        }
+      }
+    ],
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/images/splash-icon.png",
+        imageWidth: 200,
+        resizeMode: "contain",
+        backgroundColor: "#ffffff",
+        dark: {
+          backgroundColor: "#000000"
+        }
+      }
+    ],
+    "expo-secure-store",
+    "expo-web-browser",
+    "expo-secure-store",
+    [
+      "expo-image-picker",
+      {
+        photosPermission:
+          "$(PRODUCT_NAME) would like to use your device gallery to attach image in a message."
+      }
+    ],
+    [
+      "expo-media-library",
+      {
+        photosPermission:
+          "$(PRODUCT_NAME) would like access to your photo gallery to share image in a message.",
+        savePhotosPermission:
+          "$(PRODUCT_NAME) would like to save photos to your photo gallery after downloading from a message."
+      }
+    ],
+    [
+      "expo-notifications",
+      {
+        icon: "./assets/images/icon.png",
+        color: "#ffffff",
+        defaultChannel: "default"
+      }
+    ]
+  ],
+  experiments: {
+    typedRoutes: true,
+    reactCompiler: true
+  },
+  extra: {
+    router: {},
+    eas: {
+      projectId: "1376f8b5-9ca3-4d1c-95a8-620e9594ccd9"
+    }
+  }
+};
+
+module.exports = { expo: config };

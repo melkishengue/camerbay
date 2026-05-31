@@ -43,21 +43,28 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <ScreenContainer withSchrollView>
+    <ScreenContainer noPadding>
       <OnboardingProgress
         currentStep={currentStepIndex + 1}
         totalSteps={totalSteps}
         progress={progress}
       />
-      <ScrollView style={{ flex: 1 }}>{renderStep()}</ScrollView>
-      <OnboardingNavigation
-        currentStepIndex={currentStepIndex}
-        isLastStep={isLastStep}
-        canProceed={canProceed}
-        isUploading={isUploading}
-        onBack={handleBack}
-        onNext={handleNext}
-      />
+      <ScrollView
+        style={{ flex: 1 }}
+        className="px-4"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
+      >
+        {renderStep()}
+        <OnboardingNavigation
+          currentStepIndex={currentStepIndex}
+          isLastStep={isLastStep}
+          canProceed={canProceed}
+          isUploading={isUploading}
+          onBack={handleBack}
+          onNext={handleNext}
+        />
+      </ScrollView>
     </ScreenContainer>
   );
 }

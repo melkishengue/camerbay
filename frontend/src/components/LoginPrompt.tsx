@@ -1,9 +1,15 @@
+import { OAUTH_PROVIDERS } from "@/config/providers.config";
 import { useAuth } from "@/hooks/useAuth";
-import { Button, Divider, useThemeColor } from "heroui-native";
-import { LogIn } from "lucide-react-native";
+import { AntDesign } from "@expo/vector-icons";
+import { Divider, useThemeColor } from "heroui-native";
 import { ReactNode } from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import ScreenContainer from "./screenContainer";
+
+const PROVIDER_ICONS: Record<string, ReactNode> = {
+  google: <AntDesign name="google" size={20} color="#EA4335" />
+};
+
 
 interface LoginPromptProps {
   icon: ReactNode;
@@ -19,7 +25,10 @@ export function LoginPrompt({
   children
 }: LoginPromptProps) {
   const { login } = useAuth();
-  const [themeColorAccentForeground] = useThemeColor(["accent-foreground"]);
+  const [borderColor, surfaceColor, foregroundColor, mutedColor] =
+    useThemeColor(["border", "surface", "foreground", "muted"]);
+
+  const providers = Object.values(OAUTH_PROVIDERS);
 
   return (
     <ScreenContainer withSchrollView>
@@ -38,25 +47,58 @@ export function LoginPrompt({
 
         {children && <View className="mb-8">{children}</View>}
 
-        <View className="gap-4">
-          <Button variant="primary" onPress={login}>
-            <LogIn size={22} color={themeColorAccentForeground} />
-            <Button.Label className="font-semibold ml-2">
-              Se connecter
-            </Button.Label>
-          </Button>
-
-          <Text className="text-xs text-muted text-center px-6 leading-5">
-            En continuant, vous acceptez nos{" "}
-            <Text className="text-primary font-medium">
-              Conditions d&apos;utilisation
-            </Text>{" "}
-            et notre{" "}
-            <Text className="text-primary font-medium">
-              Politique de confidentialit&eacute;
-            </Text>
-          </Text>
+        <View className="gap-3">
+          {providers.map((provider) => (
+            <TouchableOpacity
+              key={provider.id}
+              activeOpacity={0.8}
+              onPress={() => login(provider.id)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor,
+                backgroundColor: surfaceColor
+              }}
+            >
+              {PROVIDER_ICONS[provider.id]}
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontFamily: "Inter_600SemiBold",
+                  color: foregroundColor
+                }}
+              >
+                Continuer avec {provider.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
+
+        <Text
+          style={{
+            fontSize: 12,
+            color: mutedColor,
+            textAlign: "center",
+            marginTop: 16,
+            paddingHorizontal: 24,
+            lineHeight: 18
+          }}
+        >
+          En continuant, vous acceptez nos{" "}
+          <Text style={{ color: "#0ea5e9", fontFamily: "Inter_500Medium" }}>
+            Conditions d&apos;utilisation
+          </Text>{" "}
+          et notre{" "}
+          <Text style={{ color: "#0ea5e9", fontFamily: "Inter_500Medium" }}>
+            Politique de confidentialit&eacute;
+          </Text>
+        </Text>
       </View>
     </ScreenContainer>
   );

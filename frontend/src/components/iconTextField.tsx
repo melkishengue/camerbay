@@ -8,6 +8,7 @@ type IconTextFieldProps = {
   onChangeText: (text: string) => void;
 
   placeholder?: string;
+  description?: string;
   error?: string;
 
   icon?: ReactNode;
@@ -23,6 +24,7 @@ export function IconTextField({
   value,
   onChangeText,
   placeholder,
+  description,
   error,
   icon,
   maxLength,
@@ -32,6 +34,7 @@ export function IconTextField({
   return (
     <TextField isInvalid={!!error}>
       <TextField.Label>{label}</TextField.Label>
+      {description && <TextField.Description>{description}</TextField.Description>}
 
       <View className="w-full flex-row items-center">
         <TextField.Input

@@ -15,7 +15,13 @@ import {
 } from "lucide-react-native";
 import React from "react";
 import { Control, Controller, FieldErrors } from "react-hook-form";
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 
 interface BasicInfoStepProps {
   control: Control<OnboardingFormData>;
@@ -26,9 +32,16 @@ export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
   const [accentColor] = useThemeColor(["accent"]);
 
   return (
-    <View style={{ gap: 16, paddingHorizontal: 16 }}>
+    <View style={{ gap: 16 }}>
       {/* Welcome header */}
-      <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 4, gap: 8 }}>
+      <View
+        style={{
+          alignItems: "center",
+          paddingTop: 8,
+          paddingBottom: 4,
+          gap: 8
+        }}
+      >
         <View
           style={{
             width: 64,
@@ -51,7 +64,12 @@ export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
         </Text>
         <Text
           className="text-muted text-center"
-          style={{ fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, maxWidth: 280 }}
+          style={{
+            fontSize: 13,
+            fontFamily: "Inter_400Regular",
+            lineHeight: 20,
+            maxWidth: 280
+          }}
         >
           Ces informations seront visibles sur votre profil
         </Text>
@@ -77,6 +95,7 @@ export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
               value={value ?? ""}
               onChangeText={onChange}
               placeholder="+49 XXX XXX XXX"
+              description="Doit commencer par + suivi de l'indicatif pays"
               keyboardType="phone-pad"
               error={errors.phone?.message}
               icon={<Phone size={16} color="#71717a" strokeWidth={1.75} />}
@@ -114,7 +133,9 @@ export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
                 value={value ?? ""}
                 onChangeText={onChange}
                 placeholder="Salon de beauté Afro"
-                icon={<AlignLeft size={16} color="#71717a" strokeWidth={1.75} />}
+                icon={
+                  <AlignLeft size={16} color="#71717a" strokeWidth={1.75} />
+                }
               />
             )}
           />
@@ -146,7 +167,6 @@ export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
   );
 }
 
-
 interface OnboardingNavigationProps {
   currentStepIndex: number;
   isLastStep: boolean;
@@ -170,7 +190,7 @@ export function OnboardingNavigation({
   ]);
 
   return (
-    <View className="border-t border-border bg-background" style={{ padding: 16, gap: 12 }}>
+    <View style={{ paddingTop: 24, gap: 12 }}>
       <View style={{ flexDirection: "row", gap: 12 }}>
         {currentStepIndex > 0 && (
           <Button
@@ -204,10 +224,11 @@ export function OnboardingNavigation({
             </>
           ) : isLastStep ? (
             <>
-              <Sparkles size={18} color={accentForeground} />
+              {/* <Sparkles size={18} color={accentForeground} /> */}
               <Button.Label style={{ fontFamily: "Inter_700Bold" }}>
                 Terminer l&apos;inscription
               </Button.Label>
+              <ChevronRight size={18} color={accentForeground} />
             </>
           ) : (
             <>
@@ -237,9 +258,16 @@ export function PhotoUploadStep({
   const [accentColor] = useThemeColor(["accent"]);
 
   return (
-    <View style={{ gap: 16, paddingHorizontal: 16 }}>
+    <View style={{ gap: 16 }}>
       {/* Header */}
-      <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 4, gap: 8 }}>
+      <View
+        style={{
+          alignItems: "center",
+          paddingTop: 8,
+          paddingBottom: 4,
+          gap: 8
+        }}
+      >
         <View
           style={{
             width: 64,
@@ -262,9 +290,14 @@ export function PhotoUploadStep({
         </Text>
         <Text
           className="text-muted text-center"
-          style={{ fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, maxWidth: 280 }}
+          style={{
+            fontSize: 13,
+            fontFamily: "Inter_400Regular",
+            lineHeight: 20,
+            maxWidth: 280
+          }}
         >
-          Une photo aide les clients à vous reconnaître
+          Une photo aide les autres utilisateurs à vous reconnaître
         </Text>
       </View>
 
@@ -309,7 +342,9 @@ export function PhotoUploadStep({
               </View>
 
               <View style={{ alignItems: "center", gap: 4 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                >
                   <CheckCircle2 size={16} color={accentColor} strokeWidth={2} />
                   <Text
                     className="text-foreground"
@@ -367,12 +402,19 @@ export function PhotoUploadStep({
                         justifyContent: "center"
                       }}
                     >
-                      <Upload size={32} color={accentColor} strokeWidth={1.75} />
+                      <Upload
+                        size={32}
+                        color={accentColor}
+                        strokeWidth={1.75}
+                      />
                     </View>
                     <View style={{ alignItems: "center", gap: 4 }}>
                       <Text
                         className="text-foreground"
-                        style={{ fontSize: 15, fontFamily: "Inter_600SemiBold" }}
+                        style={{
+                          fontSize: 15,
+                          fontFamily: "Inter_600SemiBold"
+                        }}
                       >
                         Ajouter une photo
                       </Text>
@@ -412,7 +454,10 @@ export function OnboardingProgress({
   totalSteps,
   progress
 }: OnboardingProgressProps) {
-  const [accentColor] = useThemeColor(["accent"]);
+  const [accentColor, accentForeground] = useThemeColor([
+    "accent",
+    "accent-foreground"
+  ]);
 
   const stepLabels = ["Informations", "Photo"];
 
@@ -422,7 +467,14 @@ export function OnboardingProgress({
       style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16 }}
     >
       {/* Step dots */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 14
+        }}
+      >
         {Array.from({ length: totalSteps }).map((_, i) => {
           const stepNum = i + 1;
           const isActive = stepNum === currentStep;
@@ -436,19 +488,24 @@ export function OnboardingProgress({
                     width: isActive ? 28 : 22,
                     height: isActive ? 28 : 22,
                     borderRadius: 14,
-                    backgroundColor: isDone || isActive ? accentColor : accentColor + "20",
+                    backgroundColor:
+                      isDone || isActive ? accentColor : accentColor + "20",
                     alignItems: "center",
                     justifyContent: "center"
                   }}
                 >
                   {isDone ? (
-                    <CheckCircle2 size={13} color="white" strokeWidth={2.5} />
+                    <CheckCircle2
+                      size={13}
+                      color={accentForeground}
+                      strokeWidth={2.5}
+                    />
                   ) : (
                     <Text
                       style={{
                         fontSize: isActive ? 11 : 10,
                         fontFamily: "Inter_700Bold",
-                        color: isActive ? "white" : accentColor
+                        color: isActive ? accentForeground : accentColor
                       }}
                     >
                       {stepNum}
@@ -458,7 +515,9 @@ export function OnboardingProgress({
                 <Text
                   style={{
                     fontSize: 10,
-                    fontFamily: isActive ? "Inter_600SemiBold" : "Inter_400Regular",
+                    fontFamily: isActive
+                      ? "Inter_600SemiBold"
+                      : "Inter_400Regular",
                     color: isActive ? accentColor : "#71717a"
                   }}
                 >
@@ -471,7 +530,8 @@ export function OnboardingProgress({
                   className="flex-1"
                   style={{
                     height: 1.5,
-                    backgroundColor: currentStep > stepNum ? accentColor : accentColor + "25",
+                    backgroundColor:
+                      currentStep > stepNum ? accentColor : accentColor + "25",
                     marginBottom: 16
                   }}
                 />
