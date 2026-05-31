@@ -53,6 +53,7 @@ export default function ChatScreen() {
   const borderColor = useThemeColor("background-tertiary");
   const mutedColor = useThemeColor("muted");
   const accentColor = useThemeColor("accent");
+  const accentForegroundColor = useThemeColor("accent-foreground");
 
   const [messages, setMessages] = useState<BackendMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
@@ -280,7 +281,7 @@ export default function ChatScreen() {
               >
                 <Text
                   style={{
-                    color: isMe ? "#fff" : foregroundColor,
+                    color: isMe ? accentForegroundColor : foregroundColor,
                     fontSize: 15
                   }}
                 >
@@ -288,7 +289,8 @@ export default function ChatScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: isMe ? "rgba(255,255,255,0.6)" : mutedColor,
+                    color: isMe ? accentForegroundColor : mutedColor,
+                    opacity: isMe ? 0.6 : 1,
                     fontSize: 11,
                     marginTop: 2,
                     alignSelf: "flex-end"

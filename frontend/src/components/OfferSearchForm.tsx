@@ -7,7 +7,7 @@ import { MapPin, Search, SlidersHorizontal, Tag, X } from "lucide-react-native";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { ScrollView, Text, View } from "react-native";
-import { CategorySelect } from "./categorySelect-v2";
+import { CategorySelect } from "./categorySelect";
 import { CityAutocomplete } from "./cityAutoComplete";
 import { SectionBlock } from "./sectionBlock";
 

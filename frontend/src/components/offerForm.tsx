@@ -15,7 +15,7 @@ import {
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { CategorySelect } from "./categorySelect-v2";
+import { CategorySelect } from "./categorySelect";
 import { CityAutocomplete } from "./cityAutoComplete";
 import { IconTextField } from "./iconTextField";
 import { SectionBlock } from "./sectionBlock";

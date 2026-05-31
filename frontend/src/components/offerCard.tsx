@@ -46,7 +46,8 @@ function timeAgo(date: string) {
 }
 
 const ActionDivider = () => (
-  <View className="bg-divider w-7" style={{ height: 0.5 }} />
+  <View />
+  // <View className="bg-divider w-7" style={{ height: 0.5 }} />
 );
 
 const ActionButton = ({
@@ -92,9 +93,10 @@ export const OfferCard: React.FC<OfferCardProps> = React.memo(
     const isOwner = currentUserId != null && currentUserId === offer.providerId;
 
     const pricingItems = offer.pricingItems ?? [];
-    const minPrice = pricingItems.length > 0
-      ? Math.min(...pricingItems.map((i) => i.price.amount))
-      : undefined;
+    const minPrice =
+      pricingItems.length > 0
+        ? Math.min(...pricingItems.map((i) => i.price.amount))
+        : undefined;
     const displayCurrency = pricingItems[0]?.price.currency ?? "";
     const rating = offer.providerRating || 3;
 
