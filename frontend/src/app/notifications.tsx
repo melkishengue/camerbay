@@ -80,6 +80,7 @@ export default function NotificationsScreen() {
         ) : (
           <FlatList
             data={notifications}
+            extraData={notifications}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             ListEmptyComponent={EmptyState}

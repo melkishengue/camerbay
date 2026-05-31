@@ -11,7 +11,7 @@ import {
   Star,
   Tag
 } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 const ICON_MAP: Record<
   NotificationType,
@@ -66,10 +66,11 @@ export default function NotificationItem({
   notification: AppNotification;
 }) {
   const { markAsRead } = useNotificationCenter();
-  const [foreground, mutedForeground, primaryColor, backgroundHover] =
-    useThemeColor(["foreground", "default-400", "primary", "default-100"]);
+  const [foreground, mutedForeground, primaryColor] =
+    useThemeColor(["foreground", "default-400", "primary"]);
 
   const Icon = ICON_MAP[notification.type] ?? Bell;
+  const avatarUrl = notification.data?.senderAvatarUrl;
 
   const handlePress = async () => {
     if (!notification.read) {
@@ -83,15 +84,19 @@ export default function NotificationItem({
       onPress={handlePress}
       style={({ pressed }) => [
         styles.container,
-        !notification.read && { backgroundColor: backgroundHover + "80" },
+        !notification.read && { backgroundColor: primaryColor + "18" },
         pressed && { opacity: 0.7 }
       ]}
     >
-      <View
-        style={[styles.iconContainer, { backgroundColor: primaryColor + "20" }]}
-      >
-        <Icon size={20} color={primaryColor} />
-      </View>
+      {avatarUrl ? (
+        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+      ) : (
+        <View
+          style={[styles.iconContainer, { backgroundColor: primaryColor + "20" }]}
+        >
+          <Icon size={20} color={primaryColor} />
+        </View>
+      )}
       <View style={styles.content}>
         <View style={styles.header}>
           <Text
@@ -136,6 +141,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center"
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20
   },
   content: {
     flex: 1,

@@ -6,6 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { apiClient } from "@/lib/axios-api-client";
 import { chatEvents } from "@/lib/chatEvents";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 
 // Configure how notifications appear when app is in foreground
@@ -80,6 +81,7 @@ function navigateFromNotification(
 
 export function useNotifications() {
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const responseListener = useRef<Notifications.EventSubscription>();
 
   useEffect(() => {
@@ -118,6 +120,9 @@ export function useNotifications() {
         if (data.type === "chat_message" && data.channelId) {
           chatEvents.emit(data.channelId);
         }
+        // Refresh unread count and notification list for all notification types
+        queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
       }
     );
 
@@ -137,5 +142,5 @@ export function useNotifications() {
       responseListener.current?.remove();
       foregroundSub.remove();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, queryClient]);
 }

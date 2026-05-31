@@ -3,7 +3,7 @@ import {
   AppNotification,
   NotificationListResponse
 } from "@/types/notification";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
 import React, {
   createContext,
@@ -110,6 +110,27 @@ export function NotificationCenterProvider({
 
   const markAsRead = useCallback(
     async (id: string) => {
+      // Optimistic updates — instant UI feedback before API round-trip
+      queryClient.setQueryData<InfiniteData<NotificationListResponse>>(
+        ["notifications"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              content: page.content.map((n) =>
+                n.id === id ? { ...n, read: true } : n
+              )
+            }))
+          };
+        }
+      );
+      queryClient.setQueryData<number>(
+        ["notifications-unread-count"],
+        (old) => Math.max(0, (old ?? 1) - 1)
+      );
+
       await apiClient.put(`/api/v1/notifications/${id}/read`);
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({
@@ -120,6 +141,22 @@ export function NotificationCenterProvider({
   );
 
   const markAllAsRead = useCallback(async () => {
+    // Optimistic updates
+    queryClient.setQueryData<InfiniteData<NotificationListResponse>>(
+      ["notifications"],
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            content: page.content.map((n) => ({ ...n, read: true }))
+          }))
+        };
+      }
+    );
+    queryClient.setQueryData<number>(["notifications-unread-count"], 0);
+
     await apiClient.put("/api/v1/notifications/read-all");
     queryClient.invalidateQueries({ queryKey: ["notifications"] });
     queryClient.invalidateQueries({
