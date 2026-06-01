@@ -43,8 +43,17 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { theme } = useUniwind();
   const systemColorScheme = useColorScheme();
-  const [themeFamily, setThemeFamilyState] = useState<ThemeFamily>("sky");
+  const [themeFamily, setThemeFamilyState] = useState<ThemeFamily>("lavender");
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Set theme synchronously before children render so Uniwind has a theme
+  // when components first call useStyle(). In production (__DEV__ = false),
+  // useStyle only subscribes for re-renders if initial styles have dependencies.
+  // Without a theme set before first render, styles resolve with no dependencies
+  // and never update — leaving the app unstyled.
+  const currentIsDark = systemColorScheme === "dark";
+  const immediateTheme = getThemeName(themeFamily, currentIsDark);
+  Uniwind.setTheme(immediateTheme as any);
 
   // Load saved theme family on mount
   useEffect(() => {

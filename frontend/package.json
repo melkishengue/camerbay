@@ -8,7 +8,9 @@
     "android": "expo start --android -c",
     "ios": "expo start --ios -c",
     "web": "expo start --web -c",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:ios": "bash scripts/build-ios-local.sh appstore",
+    "build:ios:upload": "bash scripts/build-ios-local.sh appstore --upload"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",
