@@ -114,7 +114,7 @@ build_archive() {
 
     # Ensure Expo Router and Metro work correctly in production
     export NODE_ENV=production
-    export EXPO_USE_METRO_WORKSPACE_ROOT=1
+    export EXPO_NO_METRO_WORKSPACE_ROOT=1
 
     # Auto-increment build number using timestamp
     BUILD_NUMBER=$(date +%s)

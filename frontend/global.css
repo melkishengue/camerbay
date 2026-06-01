@@ -8,3 +8,4 @@
 @import './themes/alpha.css';
 
 @source './node_modules/heroui-native/lib';
+@source './src';
