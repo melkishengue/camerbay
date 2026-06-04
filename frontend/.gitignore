@@ -41,4 +41,4 @@ app-example-src
 .expo
 .env
 .env.production
-AuthKey_RL7K7Z6KN8.p8
+*.p8

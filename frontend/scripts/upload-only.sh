@@ -13,8 +13,9 @@ echo "✓ IPA: $IPA"
 xcrun altool --upload-app \
     -f "$IPA" \
     -t ios \
-    --apiKey RL7K7Z6KN8 \
-    --apiIssuer e1632d6e-c5ac-4e40-9287-ae3bbba9565d \
+    --api-key Z864Z9F63H \
+    --api-issuer e1632d6e-c5ac-4e40-9287-ae3bbba9565d \
+    --p8-file-path ./AuthKey_Z864Z9F63H.p8 \
     --show-progress
 
 echo "✓ Upload complete"

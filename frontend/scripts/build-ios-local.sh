@@ -12,9 +12,9 @@
 #   ASC_API_KEY_ISSUER   — Issuer ID (same page)
 #   ASC_API_KEY_PATH     — Path to downloaded .p8 file
 
-export ASC_API_KEY_ID=RL7K7Z6KN8
+export ASC_API_KEY_ID=Z864Z9F63H
 export ASC_API_KEY_ISSUER=e1632d6e-c5ac-4e40-9287-ae3bbba9565d
-export ASC_API_KEY_PATH=./AuthKey_RL7K7Z6KN8.p8
+export ASC_API_KEY_PATH=./AuthKey_Z864Z9F63H.p8
 
 set -euo pipefail
 
@@ -144,17 +144,17 @@ build_archive() {
 
 # ── STEP 4: Export .ipa ───────────────────────────────────────────────────
 export_ipa() {
-    echo "→ Exporting .ipa…"
+    echo "→ Exporting .ipa…" >&2
     rm -rf "$EXPORT_PATH"
 
     xcodebuild -exportArchive \
         -archivePath "$ARCHIVE_PATH" \
         -exportOptionsPlist "$EXPORT_OPTIONS" \
-        -exportPath "$EXPORT_PATH"
+        -exportPath "$EXPORT_PATH" >&2
 
     local ipa
     ipa=$(find "$EXPORT_PATH" -name "*.ipa" | head -1)
-    echo "✓ IPA: $ipa"
+    echo "✓ IPA: $ipa" >&2
     echo "$ipa"
 }
 
@@ -179,9 +179,9 @@ upload_to_asc() {
     xcrun altool --upload-app \
         -f "$ipa" \
         -t ios \
-        --apiKey "$ASC_API_KEY_ID" \
-        --apiIssuer "$ASC_API_KEY_ISSUER" \
-        --apiKey-path "$ASC_API_KEY_PATH" \
+        --api-key "$ASC_API_KEY_ID" \
+        --api-issuer "$ASC_API_KEY_ISSUER" \
+        --p8-file-path "$ASC_API_KEY_PATH" \
         --show-progress
 
     echo "✓ Upload complete — check App Store Connect for processing status"

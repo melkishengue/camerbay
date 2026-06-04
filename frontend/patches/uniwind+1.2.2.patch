@@ -1,0 +1,1652 @@
+diff --git a/node_modules/uniwind/dist/metro/metro-transformer-raw.cjs b/node_modules/uniwind/dist/metro/metro-transformer-raw.cjs
+new file mode 100644
+index 0000000..a1d9d11
+--- /dev/null
++++ b/node_modules/uniwind/dist/metro/metro-transformer-raw.cjs
+@@ -0,0 +1,1565 @@
++'use strict';
++
++const fs = require('fs');
++const path = require('path');
++const common = require('../shared/uniwind.DHHHCF6a.cjs');
++const node = require('@tailwindcss/node');
++const oxide = require('@tailwindcss/oxide');
++const types = require('../shared/uniwind.BZIuaszw.cjs');
++const stringifyThemes = require('../shared/uniwind.C50t4R5h.cjs');
++const lightningcss = require('lightningcss');
++const culori = require('culori');
++
++function _interopDefaultCompat (e) { return e && typeof e === 'object' && 'default' in e ? e.default : e; }
++
++const fs__default = /*#__PURE__*/_interopDefaultCompat(fs);
++const path__default = /*#__PURE__*/_interopDefaultCompat(path);
++
++const parseStringValue = (value) => {
++  if (common.isValidJSValue(value)) {
++    return value;
++  }
++  if (value.startsWith("function")) {
++    return value;
++  }
++  const tokens = common.smartSplit(common.addMissingSpaces(value));
++  const parsedTokens = tokens.map((token) => {
++    if (token.startsWith('"')) {
++      return token.replace(/"/g, "");
++    }
++    if (/^[a-z]+$/i.test(token.replace(/,/g, ""))) {
++      return token;
++    }
++    if (common.isNumber(token)) {
++      return token;
++    }
++    const endsWithComma = token.endsWith(",");
++    return [
++      "${",
++      endsWithComma ? token.slice(0, -1) : token,
++      "}",
++      endsWithComma ? "," : ""
++    ].join("");
++  });
++  return [
++    "`",
++    parsedTokens.join(" "),
++    "`"
++  ].join("");
++};
++const serialize = (value) => {
++  const typeOfValue = typeof value;
++  switch (typeOfValue) {
++    case "string":
++      return parseStringValue(value);
++    case "symbol":
++      return String(value);
++    case "number":
++    case "bigint":
++      return String(common.roundToPrecision(value, 2));
++    case "boolean":
++      return value.toString();
++    case "object":
++      if (value === null) {
++        return "null";
++      }
++      if (Array.isArray(value)) {
++        return [
++          "[",
++          value.map(serialize).join(", "),
++          "]"
++        ].join("");
++      }
++      return [
++        "{",
++        Object.entries(value).map(([key, val]) => {
++          const serializedKey = common.isNumber(key) ? key : `"${key}"`;
++          return `${serializedKey}: ${serialize(val)}`;
++        }).join(", "),
++        "}"
++      ].join("");
++    case "undefined":
++      return "undefined";
++    case "function":
++      return "";
++    default:
++      return "";
++  }
++};
++const serializeJSObject = (obj, serializer) => {
++  const rawEntries = Object.entries(obj).map(([key, value]) => serializer(key, serialize(value)));
++  const validateEntry = (entry) => {
++    try {
++      new Function(`function validateJS() { const obj = ({ ${entry} }) }`);
++      return true;
++    } catch {
++      return false;
++    }
++  };
++  const validEntries = rawEntries.filter(validateEntry);
++  const serializedObject = validEntries.length === 0 ? "" : `${validEntries.join(",")},`;
++  try {
++    new Function(`function validateJS() { const obj = ({ ${serializedObject} }) }`);
++  } catch {
++    stringifyThemes.Logger.error("Failed to serialize javascript object");
++    return "";
++  }
++  return serializedObject;
++};
++
++var StyleDependency = /* @__PURE__ */ ((StyleDependency2) => {
++  StyleDependency2[StyleDependency2["ColorScheme"] = 1] = "ColorScheme";
++  StyleDependency2[StyleDependency2["Theme"] = 2] = "Theme";
++  StyleDependency2[StyleDependency2["Dimensions"] = 3] = "Dimensions";
++  StyleDependency2[StyleDependency2["Orientation"] = 4] = "Orientation";
++  StyleDependency2[StyleDependency2["Insets"] = 5] = "Insets";
++  StyleDependency2[StyleDependency2["FontScale"] = 6] = "FontScale";
++  StyleDependency2[StyleDependency2["Rtl"] = 7] = "Rtl";
++  StyleDependency2[StyleDependency2["AdaptiveThemes"] = 8] = "AdaptiveThemes";
++  StyleDependency2[StyleDependency2["Variables"] = 9] = "Variables";
++  return StyleDependency2;
++})(StyleDependency || {});
++
++const extractVarsFromString = (value) => {
++  const thisIndexes = [...value.matchAll(/this\[/g)].map((m) => m.index);
++  return thisIndexes.map((index) => {
++    const afterIndex = value.slice(index + 5);
++    const closingIndex = afterIndex.indexOf("]");
++    const varName = afterIndex.slice(0, closingIndex);
++    return varName.replace(/[`"\\]/g, "");
++  });
++};
++const makeSafeForSerialization = (value) => {
++  if (value === null) {
++    return null;
++  }
++  if (typeof value === "string") {
++    return `"${value}"`;
++  }
++  return value;
++};
++const addMetaToStylesTemplate = (Processor, currentPlatform) => {
++  const stylesheetsEntries = Object.entries(Processor.stylesheets).map(([className, stylesPerMediaQuery]) => {
++    const styles = stylesPerMediaQuery.map((style, index) => {
++      const {
++        platform,
++        rtl,
++        theme,
++        orientation,
++        minWidth,
++        maxWidth,
++        colorScheme,
++        // eslint-disable-next-line @typescript-eslint/no-unused-vars
++        important,
++        importantProperties,
++        active,
++        focus,
++        disabled,
++        ...rest
++      } = style;
++      const entries = Object.entries(rest).flatMap(([property, value]) => Processor.RN.cssToRN(property, value)).map(([property, value]) => [`"${property}"`, `function() { return ${serialize(value)} }`]);
++      if (platform && platform !== types.Platform.Native && platform !== currentPlatform) {
++        return null;
++      }
++      if (entries.length === 0) {
++        return null;
++      }
++      const dependencies = [];
++      const stringifiedEntries = JSON.stringify(entries);
++      const usedVars = extractVarsFromString(stringifiedEntries);
++      const isUsingThemedVar = usedVars.some((usedVarName) => {
++        return Object.values(Processor.scopedVars).some((scopedVars) => {
++          const scopedVarsNames = Object.keys(scopedVars);
++          return scopedVarsNames.includes(usedVarName);
++        });
++      });
++      if (usedVars.length > 0) {
++        dependencies.push(StyleDependency.Variables);
++      }
++      if (theme !== null || isUsingThemedVar || stringifiedEntries.includes("rt.lightDark")) {
++        dependencies.push(StyleDependency.Theme);
++      }
++      if (orientation !== null) {
++        dependencies.push(StyleDependency.Orientation);
++      }
++      if (rtl !== null) {
++        dependencies.push(StyleDependency.Rtl);
++      }
++      if (Number(minWidth) !== 0 || Number(maxWidth) !== Number.MAX_VALUE || stringifiedEntries.includes("rt.screen")) {
++        dependencies.push(StyleDependency.Dimensions);
++      }
++      if (stringifiedEntries.includes("rt.insets")) {
++        dependencies.push(StyleDependency.Insets);
++      }
++      if (stringifiedEntries.includes("rt.fontScale")) {
++        dependencies.push(StyleDependency.FontScale);
++      }
++      return {
++        entries,
++        minWidth,
++        maxWidth,
++        theme: makeSafeForSerialization(theme),
++        orientation: makeSafeForSerialization(orientation),
++        rtl,
++        colorScheme: makeSafeForSerialization(colorScheme),
++        native: platform !== null,
++        dependencies: dependencies.length > 0 ? dependencies : null,
++        index,
++        className: makeSafeForSerialization(className),
++        active,
++        focus,
++        disabled,
++        importantProperties: importantProperties?.map((property) => property.startsWith("--") ? property : common.toCamelCase).map(makeSafeForSerialization) ?? [],
++        complexity: [
++          minWidth !== 0,
++          theme !== null,
++          orientation !== null,
++          rtl !== null,
++          platform !== null,
++          active !== null,
++          focus !== null,
++          disabled !== null
++        ].filter(Boolean).length
++      };
++    });
++    const filteredStyles = styles.filter(common.isDefined);
++    if (filteredStyles.length === 0) {
++      return null;
++    }
++    return [
++      className,
++      filteredStyles
++    ];
++  }).filter(common.isDefined);
++  const stylesheets = Object.fromEntries(stylesheetsEntries);
++  return stylesheets;
++};
++
++const polyfillWeb = (css) => {
++  const result = lightningcss.transform({
++    code: Buffer.from(css),
++    filename: "uniwind.css",
++    visitor: {
++      Function: stringifyThemes.processFunctions
++    }
++  });
++  return result.code.toString();
++};
++
++class Color {
++  constructor(Processor) {
++    this.Processor = Processor;
++  }
++  toRgb = culori.converter("rgb");
++  black = "#000000";
++  logger = new stringifyThemes.Logger("Color");
++  processColor(color) {
++    if (typeof color === "string") {
++      const parsed = culori.parse(color);
++      if (parsed === void 0) {
++        this.logger.error(`Failed to convert color ${color}`);
++        return this.black;
++      }
++      return this.format(parsed);
++    }
++    try {
++      if (color.type === "currentcolor") {
++        return 'this["currentColor"]';
++      }
++      if (color.type === "rgb" || color.type === "srgb") {
++        const alpha = typeof color.alpha === "number" ? color.alpha : common.pipe(color.alpha)(
++          (x) => this.Processor.CSS.processValue(x),
++          Number,
++          (x) => isNaN(x) ? 1 : x
++        );
++        return this.format({
++          r: color.r / 255,
++          g: color.g / 255,
++          b: color.b / 255,
++          alpha,
++          mode: "rgb"
++        });
++      }
++      const result = this.toRgb({
++        mode: color.type,
++        ...color
++      });
++      return this.format(result);
++    } catch {
++      this.logger.error(`Failed to convert color ${JSON.stringify(color)}`);
++      return this.black;
++    }
++  }
++  isColor(value) {
++    return typeof value === "string" && culori.parse(value) !== void 0;
++  }
++  format(color) {
++    if (color.alpha === 1 || color.alpha === void 0) {
++      return culori.formatHex(color);
++    }
++    return culori.formatHex8(color);
++  }
++}
++
++class CSS {
++  constructor(Processor) {
++    this.Processor = Processor;
++  }
++  logger = new stringifyThemes.Logger("CSS");
++  processValue(declarationValue) {
++    const processedValue = this.getProcessedValue(declarationValue);
++    if (typeof processedValue === "string") {
++      return this.makeSafeForSerialization(processedValue);
++    }
++    if (Array.isArray(processedValue)) {
++      return processedValue.map((value) => {
++        if (typeof value === "string") {
++          return this.makeSafeForSerialization(value);
++        }
++        return value;
++      });
++    }
++    if (typeof processedValue === "object" && processedValue !== null) {
++      return Object.fromEntries(
++        Object.entries(processedValue).map(([key, value]) => {
++          if (typeof value === "string") {
++            return [
++              key,
++              this.makeSafeForSerialization(value)
++            ];
++          }
++          return [
++            key,
++            value
++          ];
++        })
++      );
++    }
++    return processedValue;
++  }
++  getProcessedValue(declarationValue) {
++    if (typeof declarationValue !== "object") {
++      return declarationValue;
++    }
++    if ("type" in declarationValue) {
++      switch (declarationValue.type) {
++        case "function":
++          return this.Processor.Functions.processFunction(declarationValue.value);
++        case "var":
++          return this.Processor.Var.processVar(declarationValue.value);
++        case "number":
++          return declarationValue.value;
++        case "token":
++          return this.processValue(declarationValue.value);
++        case "length":
++          return this.Processor.Units.processAnyLength(declarationValue.value);
++        case "color":
++          return this.Processor.Color.processColor(declarationValue.value);
++        case "integer":
++          return declarationValue.value;
++        case "comma":
++          return ", ";
++        case "dimension":
++        case "value":
++        case "length-percentage":
++          return this.Processor.Units.processLength(declarationValue.value);
++        case "translate": {
++          const [translateX, translateY] = declarationValue.value.map((x) => this.processValue(x));
++          return [
++            {
++              translateX
++            },
++            {
++              translateY
++            }
++          ];
++        }
++        case "translateX":
++          return {
++            translateX: this.Processor.Units.processLength(declarationValue.value)
++          };
++        case "translateY":
++          return {
++            translateY: this.Processor.Units.processLength(declarationValue.value)
++          };
++        case "translateZ": {
++          return {
++            translateZ: this.processValue(declarationValue.value)
++          };
++        }
++        case "rotate":
++          return {
++            rotate: `${declarationValue.value.value}${declarationValue.value.type}`
++          };
++        case "rotateX":
++          return {
++            rotateX: `${declarationValue.value.value}${declarationValue.value.type}`
++          };
++        case "rotateY":
++          return {
++            rotateY: `${declarationValue.value.value}${declarationValue.value.type}`
++          };
++        case "rotateZ":
++          return {
++            rotateZ: `${declarationValue.value.value}${declarationValue.value.type}`
++          };
++        case "scale": {
++          const [scaleX, scaleY] = declarationValue.value.map((x) => this.processValue(x));
++          if (scaleX === scaleY) {
++            return {
++              scale: scaleX
++            };
++          }
++          return [
++            {
++              scaleX
++            },
++            {
++              scaleY
++            }
++          ];
++        }
++        case "scaleX":
++          return {
++            scaleX: this.processValue(declarationValue.value)
++          };
++        case "scaleY":
++          return {
++            scaleY: this.processValue(declarationValue.value)
++          };
++        case "scaleZ":
++          return {
++            scaleZ: this.processValue(declarationValue.value)
++          };
++        case "percentage":
++          return `${declarationValue.value * 100}%`;
++        case "token-list":
++          return declarationValue.value.reduce((acc, token) => {
++            const tokenValue = this.processValue(token);
++            return acc + tokenValue;
++          }, "");
++        case "rgb":
++        case "oklab":
++        case "oklch":
++        case "hsl":
++        case "hwb":
++        case "lab":
++        case "lch":
++        case "srgb":
++          return this.Processor.Color.processColor(declarationValue);
++        case "delim":
++          return ` ${declarationValue.value} `;
++        case "ident":
++          if (this.Processor.Color.isColor(declarationValue.value)) {
++            return this.Processor.Color.processColor(declarationValue.value);
++          }
++          if (declarationValue.value === "currentcolor") {
++            return 'this["currentColor"]';
++          }
++          return declarationValue.value;
++        case "env":
++          if (declarationValue.value.name.type === "ua" && declarationValue.value.name.value.startsWith("safe-area-inset-")) {
++            const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
++            return `rt.insets.${inset}`;
++          }
++          this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
++          return void 0;
++        case "time": {
++          const unit = declarationValue.value.type === "milliseconds" ? "ms" : "s";
++          return `${declarationValue.value.value}${unit}`;
++        }
++        case "cubic-bezier": {
++          const bezier = [
++            declarationValue.x1,
++            declarationValue.y1,
++            declarationValue.x2,
++            declarationValue.y2
++          ];
++          return `rt.cubicBezier(${bezier.join(",")})`;
++        }
++        case "seconds":
++          return `${declarationValue.value}s`;
++        case "milliseconds":
++          return `${declarationValue.value}ms`;
++        case "pair":
++          return declarationValue.inside.type;
++        case "currentcolor":
++          return 'this["currentColor"]';
++        case "calc":
++          return this.Processor.Functions.processCalc(declarationValue.value);
++        case "min":
++        case "max":
++        case "abs":
++          return this.Processor.Functions.processMathFunction(declarationValue.type, declarationValue.value);
++        case "keyword":
++          if ("value" in declarationValue) {
++            return declarationValue.value;
++          }
++          this.logUnsupported(`Unsupported keyword value - ${JSON.stringify(declarationValue)}`);
++          return void 0;
++        case "min-max":
++        case "track-breadth":
++          return declarationValue.type;
++        case "explicit":
++          return `${this.processValue(declarationValue.width)} ${this.processValue(declarationValue.height)}`;
++        case "angle":
++          return `${declarationValue.value.value}${declarationValue.value.type}`;
++        case "gradient":
++          if (declarationValue.value.type === "linear") {
++            const direction = String(this.processValue(declarationValue.value.direction));
++            return [
++              direction.includes("deg") ? direction : `to ${direction}`,
++              ...declarationValue.value.items.map((item) => this.processValue(item))
++            ].join(", ");
++          }
++          return void 0;
++        case "color-stop":
++          return [
++            this.Processor.Color.processColor(declarationValue.color),
++            declarationValue.position ? this.processValue(declarationValue.position) : null
++          ].filter(common.isDefined).join(" ");
++        case "side":
++          return declarationValue.side;
++        case "absolute":
++          if ("value" in declarationValue) {
++            return typeof declarationValue.value === "string" ? declarationValue.value : this.processValue(declarationValue.value);
++          }
++          return declarationValue.type;
++        case "hash":
++          return `#${declarationValue.value}`;
++        case "line-style":
++          return declarationValue.value;
++        case "parenthesis-block":
++          return "(";
++        case "close-parenthesis":
++          return ")";
++        case "light-dark":
++          return `rt.lightDark( ${this.processValue(declarationValue.light)}, ${this.processValue(declarationValue.dark)} )`;
++        case "unresolved-color":
++          return this.getProcessedValue(declarationValue.value);
++        case "track-list":
++        case "sticky":
++        case "fit-content":
++        case "shape":
++          return void 0;
++        case "weight":
++        case "horizontal":
++        case "vertical":
++        case "white-space":
++        case "string":
++        case "self-position":
++        case "content-distribution":
++        case "content-position":
++          return declarationValue.value;
++        case "baseline-position":
++          return "baseline";
++        default:
++          if (Object.keys(declarationValue).length === 1) {
++            return declarationValue.type;
++          }
++          this.logUnsupported(`Unsupported value type - ${JSON.stringify(declarationValue.type)}`);
++          return void 0;
++      }
++    }
++    if ("top" in declarationValue) {
++      return {
++        top: this.processValue(declarationValue.top),
++        right: this.processValue(declarationValue.right),
++        bottom: this.processValue(declarationValue.bottom),
++        left: this.processValue(declarationValue.left)
++      };
++    }
++    if ("topLeft" in declarationValue) {
++      return {
++        topLeft: this.processValue(declarationValue.topLeft),
++        topRight: this.processValue(declarationValue.topRight),
++        bottomLeft: this.processValue(declarationValue.bottomLeft),
++        bottomRight: this.processValue(declarationValue.bottomRight)
++      };
++    }
++    if ("grow" in declarationValue) {
++      return {
++        flexGrow: declarationValue.grow,
++        flexShrink: declarationValue.shrink,
++        flexBasis: this.processValue(declarationValue.basis)
++      };
++    }
++    if (Array.isArray(declarationValue)) {
++      if (declarationValue.length === 1) {
++        return this.processValue(declarationValue[0]);
++      }
++      return this.addComaBetweenTokens(declarationValue).reduce((acc, value, index, array) => {
++        if (typeof value === "object") {
++          const nextValue = array.at(index + 1);
++          if (common.deepEqual(value, nextValue)) {
++            return acc;
++          }
++          const result = this.processValue(value);
++          return acc === "" && typeof result === "number" ? result : acc + result;
++        }
++        return acc + value;
++      }, "");
++    }
++    if ("property" in declarationValue) {
++      const property = typeof declarationValue.property === "string" ? declarationValue.property : declarationValue.property.property;
++      return `${property},`;
++    }
++    if ("case" in declarationValue) {
++      return declarationValue.case;
++    }
++    if ("angle" in declarationValue) {
++      const angles = common.pipe([
++        ["rotateX", declarationValue.x * declarationValue.angle.value],
++        ["rotateY", declarationValue.y * declarationValue.angle.value],
++        ["rotateZ", declarationValue.z * declarationValue.angle.value]
++      ])(
++        (x) => x.filter(([, value]) => value !== 0),
++        (x) => x.map(([key, value]) => [key, `${value}${declarationValue.angle.type}`]),
++        Object.fromEntries
++      );
++      return angles;
++    }
++    if (this.isOverflow(declarationValue)) {
++      if (declarationValue.x === declarationValue.y) {
++        return {
++          overflow: declarationValue.x
++        };
++      }
++      return {
++        overflowX: declarationValue.x,
++        overflowY: declarationValue.y
++      };
++    }
++    if ("auto" in declarationValue) {
++      return declarationValue.ratio ? `${declarationValue.ratio[0]}/${declarationValue.ratio[1]}` : "auto";
++    }
++    if ("x" in declarationValue && "y" in declarationValue) {
++      return {
++        x: this.processValue(declarationValue.x),
++        y: this.processValue(declarationValue.y)
++      };
++    }
++    if ("xOffset" in declarationValue) {
++      return [
++        "inset" in declarationValue && declarationValue.inset ? "inset" : void 0,
++        this.processValue(declarationValue.xOffset),
++        this.processValue(declarationValue.yOffset),
++        this.processValue(declarationValue.blur),
++        this.processValue(declarationValue.spread),
++        this.processValue(declarationValue.color)
++      ].filter(common.isDefined).join(" ");
++    }
++    if ("blockStart" in declarationValue) {
++      const startValue = this.processValue(declarationValue.blockStart);
++      const endValue = this.processValue(declarationValue.blockEnd);
++      return {
++        start: startValue,
++        end: endValue
++      };
++    }
++    if ("inlineStart" in declarationValue) {
++      const startValue = this.processValue(declarationValue.inlineStart);
++      const endValue = this.processValue(declarationValue.inlineEnd);
++      return {
++        start: startValue,
++        end: endValue
++      };
++    }
++    if ("start" in declarationValue) {
++      const startValue = this.processValue(declarationValue.start);
++      const endValue = this.processValue(declarationValue.end);
++      return {
++        start: startValue,
++        end: endValue
++      };
++    }
++    if ("row" in declarationValue) {
++      return {
++        row: this.processValue(declarationValue.row),
++        column: this.processValue(declarationValue.column)
++      };
++    }
++    if ("keyword" in declarationValue) {
++      return declarationValue.keyword === "auto" || declarationValue.keyword === "pointer" ? declarationValue.keyword : "auto";
++    }
++    if ("style" in declarationValue && "width" in declarationValue) {
++      return {
++        style: this.processValue(declarationValue.style),
++        width: declarationValue.width.type === "length" ? this.processValue(declarationValue.width.value) : void 0,
++        color: this.Processor.Color.processColor(declarationValue.color)
++      };
++    }
++    if ("duration" in declarationValue) {
++      return [
++        this.processValue(declarationValue.name),
++        this.processValue(declarationValue.duration),
++        this.processValue(declarationValue.timingFunction),
++        this.processValue(declarationValue.delay),
++        this.processValue(declarationValue.iterationCount),
++        declarationValue.direction,
++        declarationValue.fillMode,
++        declarationValue.playState,
++        this.processValue(declarationValue.timeline)
++      ].filter(Boolean).join(" ");
++    }
++    this.logUnsupported(`Unsupported value - ${JSON.stringify(declarationValue)}`);
++    return void 0;
++  }
++  isOverflow(value) {
++    return typeof value === "object" && "x" in value && ["hidden", "visible"].includes(value.x);
++  }
++  /**
++   * Between some tokens there isn't a comma but it should be.
++   * For example this applies to Array of shadows
++   */
++  addComaBetweenTokens(values) {
++    return values.reduce((acc, value, index, array) => {
++      const next = array.at(index + 1);
++      acc.push(value);
++      if (next === void 0) {
++        return acc;
++      }
++      if (typeof next === "object" && "type" in next && next.type === "token" && next.value.type === "comma") {
++        return acc;
++      }
++      if (!(typeof value === "object" && "xOffset" in value && "blur" in value)) {
++        return acc;
++      }
++      acc.push({
++        type: "token",
++        value: {
++          type: "comma"
++        }
++      });
++      return acc;
++    }, []);
++  }
++  logUnsupported(message) {
++    this.logger.warn(
++      [
++        message,
++        this.Processor.meta.className !== void 0 ? `for className ${this.Processor.meta.className}` : null
++      ].filter(Boolean).join(" ")
++    );
++  }
++  makeSafeForSerialization(value) {
++    if (common.shouldBeSerialized(value)) {
++      return value;
++    }
++    if (value.endsWith("%")) {
++      return `"${common.roundToPrecision(parseFloat(value), 2)}%"`;
++    }
++    return `"${value}"`;
++  }
++}
++
++class Functions {
++  constructor(Processor) {
++    this.Processor = Processor;
++  }
++  logger = new stringifyThemes.Logger("Functions");
++  processCalc(calc) {
++    switch (calc.type) {
++      case "sum": {
++        const sum = calc.value.map((x) => this.processCalc(x)).join(" + ");
++        return this.tryEval(sum);
++      }
++      case "value":
++        return this.Processor.CSS.processValue(calc.value);
++      case "function":
++        return this.Processor.CSS.processValue(calc.value);
++      case "number":
++        return String(calc.value);
++      default:
++        this.logger.warn(`Unsupported calc type - ${calc.type}`);
++        return "";
++    }
++  }
++  processFunction(fn) {
++    if (typeof fn !== "object") {
++      this.logger.warn(`Unsupported function - ${fn}`);
++      return fn;
++    }
++    if (fn.name === "calc") {
++      const calc = this.Processor.CSS.processValue(fn.arguments);
++      return common.pipe(calc)(
++        String,
++        (x) => this.Processor.Functions.tryEval(x)
++      );
++    }
++    if (fn.name === "cubic-bezier") {
++      const cubicArguments = common.pipe(this.Processor.CSS.processValue(fn.arguments))(
++        String,
++        (x) => x.replace(/,\s/g, ",")
++      );
++      return `rt.cubicBezier(${cubicArguments})`;
++    }
++    if (fn.name === "max") {
++      return `Math.max(${this.Processor.CSS.processValue(fn.arguments)})`;
++    }
++    if (fn.name === "linear-gradient") {
++      return this.Processor.CSS.processValue(fn.arguments);
++    }
++    if (fn.name === "color-mix") {
++      return this.processColorMix(fn);
++    }
++    if ([
++      "rgb",
++      "oklab",
++      "oklch",
++      "hsl",
++      "hwb",
++      "lab",
++      "lch",
++      "srgb"
++    ].includes(fn.name)) {
++      const color = `${fn.name}(${this.Processor.CSS.processValue(fn.arguments)})`;
++      return this.Processor.Color.processColor(color);
++    }
++    if ([
++      "blur",
++      "brightness",
++      "contrast",
++      "grayscale",
++      "hue-rotate",
++      "invert",
++      "opacity",
++      "saturate",
++      "sepia",
++      "conic-gradient",
++      "radial-gradient"
++    ].includes(fn.name)) {
++      return '""';
++    }
++    if (["skewX", "skewY"].includes(fn.name)) {
++      return `"${fn.name}(${this.Processor.CSS.processValue(fn.arguments).replace(/"/g, "")})"`;
++    }
++    if (fn.name === "hairlineWidth") {
++      return "rt.hairlineWidth";
++    }
++    if (fn.name === "pixelRatio") {
++      return `rt.pixelRatio(${this.Processor.CSS.processValue(fn.arguments)})`;
++    }
++    if (fn.name === "fontScale") {
++      return `rt.fontScale(${this.Processor.CSS.processValue(fn.arguments)})`;
++    }
++    if (fn.name === "drop-shadow") {
++      return void 0;
++    }
++    this.logger.warn(`Unsupported function - ${fn.name}`);
++    return fn.name;
++  }
++  processMathFunction(name, value) {
++    if (!Array.isArray(value)) {
++      return `Math.${name}(${this.processCalc(value)})`;
++    }
++    const values = value.map((x) => this.processCalc(x)).join(" , ");
++    return `Math.${name}(${values})`;
++  }
++  tryEval(value) {
++    const units = Array.from(
++      value.replace(/"/g, "").match(/(?<![A-Za-z-])(?:%|deg|rad|grad|turn)(?=\s|$)/g) ?? []
++    );
++    if (units.length === 0) {
++      return value;
++    }
++    if (new Set(units).size !== 1) {
++      this.logger.error(`Invalid calc, you can't mix multiple units`);
++      return value;
++    }
++    if (units.includes("%") && value.includes("+")) {
++      this.logger.error(`Invalid calc, you can't mix % with other units`);
++      return value;
++    }
++    const unit = units.at(0) ?? "";
++    try {
++      const numericValue = value.replace(/"/g, "").replace(new RegExp(unit, "g"), "");
++      return new Function(`return ${numericValue} + '${unit}'`)();
++    } catch {
++      this.logger.error(`Invalid calc ${value}`);
++      return value;
++    }
++  }
++  processColorMix(fn) {
++    const tokens = fn.arguments.map(
++      (arg) => common.pipe(arg)(
++        (x) => this.Processor.CSS.processValue(x),
++        String,
++        (x) => x.trim()
++      )
++    ).filter((token) => !["", ",", "in", "srgb", "rgb", "hsl", "hwb", "lab", "lch", "oklab", "oklch"].includes(token.replace(/"/g, "")));
++    return `rt.colorMix(${tokens.join(", ")})`;
++  }
++}
++
++class MQ {
++  constructor(Processor) {
++    this.Processor = Processor;
++  }
++  processMediaQueries(mediaQueries) {
++    const mq = this.getInitialMediaQueryResolver();
++    mediaQueries.forEach((mediaQuery) => {
++      const { condition, mediaType } = mediaQuery;
++      if ([types.Platform.Android, types.Platform.iOS, types.Platform.Native].includes(mediaType)) {
++        mq.platform = mediaType;
++        return;
++      }
++      if (condition?.type !== "feature") {
++        return;
++      }
++      if (condition.value.type === "range") {
++        this.processWidthMediaQuery(condition.value, mq);
++      }
++      if (condition.value.type === "plain") {
++        this.processPlainMediaQuery(condition.value, mq);
++      }
++    });
++    return mq;
++  }
++  processWidthMediaQuery(query, mq) {
++    const { operator, value } = query;
++    const result = this.Processor.CSS.processValue(value);
++    if (operator === "greater-than-equal" || operator === "greater-than") {
++      mq.minWidth = result;
++    }
++    if (operator === "less-than-equal" || operator === "less-than") {
++      mq.maxWidth = result;
++    }
++  }
++  processPlainMediaQuery(query, mq) {
++    const { value, name } = query;
++    switch (name) {
++      case "orientation":
++        mq.orientation = value.value;
++        break;
++      case "prefers-color-scheme":
++        mq.colorScheme = value.value;
++        break;
++    }
++  }
++  getInitialMediaQueryResolver() {
++    return {
++      minWidth: 0,
++      maxWidth: Number.MAX_VALUE,
++      platform: null,
++      rtl: null,
++      important: false,
++      colorScheme: null,
++      orientation: null,
++      theme: null,
++      active: null,
++      focus: null,
++      disabled: null
++    };
++  }
++}
++
++const cssToRNMap = {
++  backgroundSize: (value) => {
++    return {
++      resizeMode: value
++    };
++  },
++  transitionProperty: (value) => {
++    return {
++      transitionProperty: value.replace(/"/g, "").split(",").filter((token) => token !== "" && !token.startsWith("--")).map((token) => `"${common.toCamelCase(token)}"`)
++    };
++  },
++  flex: (value) => {
++    if (typeof value === "object") {
++      return value;
++    }
++    return {
++      flex: value
++    };
++  },
++  overflow: (value) => {
++    if (typeof value === "object") {
++      return value;
++    }
++    return {
++      overflow: value
++    };
++  },
++  backdropFilter: () => ({}),
++  backgroundImage: (value) => ({
++    experimental_backgroundImage: value
++  }),
++  borderSpacing: () => ({}),
++  translate: (value) => {
++    if (typeof value === "object" && "x" in value && "y" in value) {
++      return {
++        translateX: value.x,
++        translateY: value.y
++      };
++    }
++    if (typeof value === "string") {
++      const [x, y] = value.split(" ");
++      return {
++        translateX: x,
++        translateY: y ?? x
++      };
++    }
++    return {};
++  },
++  rotate: (value) => {
++    if (typeof value === "object") {
++      return value;
++    }
++    return {
++      rotate: value
++    };
++  },
++  scale: (value) => {
++    if (typeof value === "object") {
++      return {
++        scaleX: value.x,
++        scaleY: value.y,
++        scaleZ: value.z
++      };
++    }
++    if (typeof value === "string") {
++      const [x, y, z] = value.split(" ");
++      return {
++        scaleX: x,
++        scaleY: y,
++        scaleZ: z
++      };
++    }
++    return {};
++  },
++  transform: (value) => {
++    if (typeof value === "string" || Array.isArray(value)) {
++      return {
++        transform: value
++      };
++    }
++    if (typeof value === "object") {
++      return Object.keys(value).length === 0 ? { transform: [] } : value;
++    }
++    return {};
++  },
++  fontSize: (value) => {
++    return {
++      fontSize: value,
++      "--uniwind-em": value
++    };
++  },
++  borderInlineWidth: (value) => {
++    const borderWidth = typeof value === "object" ? Object.values(value)[0] : value;
++    return {
++      borderLeftWidth: borderWidth,
++      borderRightWidth: borderWidth
++    };
++  },
++  borderBlockWidth: (value) => {
++    const borderWidth = typeof value === "object" ? Object.values(value)[0] : value;
++    return {
++      borderTopWidth: borderWidth,
++      borderBottomWidth: borderWidth
++    };
++  },
++  borderInlineStyle: (value) => {
++    return {
++      borderStyle: value
++    };
++  },
++  borderBlockStyle: (value) => {
++    return {
++      borderStyle: value
++    };
++  },
++  borderStyle: (value) => {
++    const borderStyle = typeof value === "object" ? Object.values(value)[0] : value;
++    return {
++      borderStyle
++    };
++  },
++  transformOrigin: (value) => {
++    if (typeof value === "object") {
++      return {
++        transformOrigin: `${value.x} ${value.y}`
++      };
++    }
++    return {
++      transformOrigin: value
++    };
++  },
++  fontVariantNumeric: (value) => ({
++    fontVariant: value
++  })
++};
++class RN {
++  constructor(Processor) {
++    this.Processor = Processor;
++  }
++  cssToRN(property, value) {
++    const transformedProperty = property.startsWith("--") ? property : common.pipe(property)(
++      common.toCamelCase,
++      (x) => {
++        if (x.includes("padding") || x.includes("margin")) {
++          return x.replace("Inline", "Horizontal").replace("Block", "Vertical");
++        }
++        return x;
++      }
++    );
++    const rn = this.transformProperty(
++      transformedProperty,
++      typeof value === "string" ? common.addMissingSpaces(value) : value
++    );
++    return Object.entries(rn).filter(([, value2]) => common.isDefined(value2));
++  }
++  transformProperty(property, value) {
++    if (property in cssToRNMap) {
++      return cssToRNMap[property](value);
++    }
++    if (typeof value === "object") {
++      const transformed = this.transformObjectProperty(property, value);
++      if (transformed) {
++        return transformed;
++      }
++    }
++    return {
++      [property]: value
++    };
++  }
++  transformObjectProperty(property, value) {
++    const properties = Object.keys(value);
++    const propertyEnd = property.includes("border") ? property.split("border").at(-1) ?? "" : "";
++    const transformedProperty = property.replace(propertyEnd, "");
++    const isSpacing = property.includes("margin") || property.includes("padding");
++    const wrapProperty = (prop) => `${transformedProperty}${prop}${propertyEnd}`;
++    if (properties.every((property2) => ["row", "column"].includes(property2))) {
++      return {
++        rowGap: value.row,
++        columnGap: value.column
++      };
++    }
++    if (properties.every((property2) => ["start", "end"].includes(property2))) {
++      if (isSpacing && property.includes("Horizontal")) {
++        return {
++          [`${property.replace("Horizontal", "Left")}`]: value.start,
++          [`${property.replace("Horizontal", "Right")}`]: value.end
++        };
++      }
++      if (isSpacing && property.includes("Vertical")) {
++        return {
++          [`${property.replace("Vertical", "Top")}`]: value.start,
++          [`${property.replace("Vertical", "Bottom")}`]: value.end
++        };
++      }
++      return {
++        [wrapProperty("Start")]: value.start,
++        [wrapProperty("End")]: value.end
++      };
++    }
++    if (properties.every((property2) => ["top", "right", "bottom", "left"].includes(property2))) {
++      return {
++        [wrapProperty("Top")]: value.top,
++        [wrapProperty("Right")]: value.right,
++        [wrapProperty("Bottom")]: value.bottom,
++        [wrapProperty("Left")]: value.left
++      };
++    }
++    if (properties.every((property2) => ["topLeft", "topRight", "bottomRight", "bottomLeft"].includes(property2))) {
++      return {
++        [wrapProperty("TopLeft")]: value.topLeft,
++        [wrapProperty("TopRight")]: value.topRight,
++        [wrapProperty("BottomRight")]: value.bottomRight,
++        [wrapProperty("BottomLeft")]: value.bottomLeft
++      };
++    }
++    if (properties.every((property2) => ["style", "width", "color"].includes(property2))) {
++      return {
++        [wrapProperty("Style")]: value.style,
++        [wrapProperty("Width")]: value.width,
++        [wrapProperty("Color")]: value.color
++      };
++    }
++  }
++}
++
++class Units {
++  constructor(Processor) {
++    this.Processor = Processor;
++  }
++  logger = new stringifyThemes.Logger("Units");
++  processLength(length) {
++    if (typeof length === "number") {
++      return length;
++    }
++    if ("unit" in length) {
++      switch (length.unit) {
++        case "px":
++          return this.replaceInfinity(length.value);
++        case "vw":
++          return `rt.screen.width * ${length.value / 100}`;
++        case "vh":
++          return `rt.screen.height * ${length.value / 100}`;
++        case "rem":
++          return length.value * this.Processor.vars["--uniwind-em"];
++        case "em":
++          return `this[\`--uniwind-em\`] * ${length.value}`;
++        default:
++          this.logger.warn(`Unsupported unit - ${length.unit}`);
++          return length.value;
++      }
++    }
++    return this.Processor.CSS.processValue(length);
++  }
++  processAnyLength(length) {
++    if ("type" in length) {
++      switch (length.type) {
++        case "value":
++        case "dimension":
++          return this.processLength(length.value);
++        case "percentage":
++          return `${length.value * 100}%`;
++        default:
++          this.logger.warn(`Unsupported length type - ${length.type}`);
++          return length.value;
++      }
++    }
++    return this.processLength(length);
++  }
++  replaceInfinity(value) {
++    return value === Infinity ? 99999 : value;
++  }
++}
++
++class Var {
++  constructor(Processor) {
++    this.Processor = Processor;
++  }
++  processVar(variable) {
++    const value = `this[\`${variable.name.ident}\`]`;
++    if (!variable.fallback || variable.fallback.length === 0) {
++      return value;
++    }
++    const fallback = this.Processor.CSS.processValue(variable.fallback);
++    return `${value} ?? ${fallback}`;
++  }
++}
++
++class ProcessorBuilder {
++  constructor(themes, polyfills) {
++    this.themes = themes;
++    this.polyfills = polyfills;
++    this.vars["--uniwind-em"] = polyfills?.rem ?? 16;
++  }
++  stylesheets = {};
++  vars = {};
++  scopedVars = {};
++  CSS = new CSS(this);
++  RN = new RN(this);
++  Var = new Var(this);
++  MQ = new MQ(this);
++  Color = new Color(this);
++  Units = new Units(this);
++  Functions = new Functions(this);
++  meta = {};
++  declarationConfig = this.getDeclarationConfig();
++  transform(css) {
++    lightningcss.transform({
++      filename: "tailwind.css",
++      code: Buffer.from(css),
++      visitor: {
++        StyleSheet: (styleSheet) => styleSheet.rules.forEach((rule) => {
++          this.declarationConfig = this.getDeclarationConfig();
++          this.parseRuleRec(rule);
++        })
++      }
++    });
++  }
++  getDeclarationConfig() {
++    return {
++      className: null,
++      rtl: null,
++      mediaQueries: [],
++      root: false,
++      theme: null,
++      active: null,
++      focus: null,
++      disabled: null
++    };
++  }
++  addDeclaration(declaration, important = false) {
++    const isVar = this.declarationConfig.root || this.declarationConfig.className === null;
++    const mq = this.MQ.processMediaQueries(this.declarationConfig.mediaQueries);
++    const style = (() => {
++      if (!isVar) {
++        return this.stylesheets[this.declarationConfig.className]?.at(-1);
++      }
++      if (mq.platform !== null) {
++        const platformKey = `__uniwind-platform-${mq.platform}`;
++        this.scopedVars[platformKey] ??= {};
++        return this.scopedVars[platformKey];
++      }
++      if (this.declarationConfig.theme === null) {
++        return this.vars;
++      }
++      const themeKey = `__uniwind-theme-${this.declarationConfig.theme}`;
++      this.scopedVars[themeKey] ??= {};
++      return this.scopedVars[themeKey];
++    })();
++    if (!isVar) {
++      Object.assign(style, mq);
++      style.importantProperties ??= [];
++      style.rtl = this.declarationConfig.rtl;
++      style.theme = mq.colorScheme ?? this.declarationConfig.theme;
++      style.active = this.declarationConfig.active;
++      style.focus = this.declarationConfig.focus;
++      style.disabled = this.declarationConfig.disabled;
++      this.meta.className = this.declarationConfig.className;
++    }
++    if (declaration.property === "unparsed") {
++      style[declaration.value.propertyId.property] = this.CSS.processValue(declaration.value.value);
++      if (!isVar && important) {
++        style.importantProperties.push(declaration.value.propertyId.property);
++      }
++      return;
++    }
++    if (declaration.property === "custom") {
++      style[declaration.value.name] = this.CSS.processValue(declaration.value.value);
++      if (!isVar && important) {
++        style.importantProperties.push(declaration.value.name);
++      }
++      return;
++    }
++    style[declaration.property] = this.CSS.processValue(declaration.value);
++    if (!isVar && important) {
++      style.importantProperties.push(declaration.property);
++    }
++  }
++  parseRuleRec(rule) {
++    if (this.declarationConfig.className !== null) {
++      const lastStyle = this.stylesheets[this.declarationConfig.className]?.at(-1);
++      if (lastStyle !== void 0 && Object.keys(lastStyle).length > 0) {
++        this.stylesheets[this.declarationConfig.className]?.push({});
++      }
++    }
++    if (rule.type === "style") {
++      rule.value.selectors.forEach((selector) => {
++        const [maybeClassNameSelector] = selector;
++        const newClassName = maybeClassNameSelector?.type === "class" ? maybeClassNameSelector.name : void 0;
++        if (newClassName !== void 0) {
++          this.declarationConfig.className = newClassName;
++          this.stylesheets[newClassName] ??= [];
++          this.stylesheets[newClassName].push({});
++          rule.value.declarations?.declarations?.forEach((declaration) => this.addDeclaration(declaration));
++          rule.value.declarations?.importantDeclarations?.forEach((declaration) => this.addDeclaration(declaration, true));
++          rule.value.rules?.forEach((rule2) => this.parseRuleRec(rule2));
++          return;
++        }
++        let rtl = null;
++        let theme = null;
++        let active = null;
++        let focus = null;
++        let disabled = null;
++        selector.forEach((selector2) => {
++          if (selector2.type === "pseudo-class" && selector2.kind === "where") {
++            selector2.selectors.forEach((selector3) => {
++              selector3.forEach((selector4) => {
++                if (selector4.type === "class" && this.themes.includes(selector4.name)) {
++                  theme = selector4.name;
++                }
++                if (selector4.type === "pseudo-class" && selector4.kind === "dir") {
++                  rtl = selector4.direction === "rtl";
++                }
++              });
++            });
++          }
++          if (selector2.type === "pseudo-class" && selector2.kind === "active") {
++            active = true;
++          }
++          if (selector2.type === "pseudo-class" && selector2.kind === "focus") {
++            focus = true;
++          }
++          if (selector2.type === "pseudo-class" && selector2.kind === "disabled") {
++            disabled = true;
++          }
++        });
++        if ([rtl, theme, active, focus, disabled].some(Boolean)) {
++          this.declarationConfig.rtl = rtl;
++          this.declarationConfig.theme = theme;
++          this.declarationConfig.active = active;
++          this.declarationConfig.focus = focus;
++          this.declarationConfig.disabled = disabled;
++          rule.value.declarations?.declarations?.forEach((declaration) => this.addDeclaration(declaration));
++          rule.value.declarations?.importantDeclarations?.forEach((declaration) => this.addDeclaration(declaration, true));
++          rule.value.rules?.forEach((rule2) => this.parseRuleRec(rule2));
++          this.declarationConfig.rtl = null;
++          this.declarationConfig.theme = null;
++          this.declarationConfig.active = null;
++          this.declarationConfig.focus = null;
++          this.declarationConfig.disabled = null;
++          return;
++        }
++        selector.forEach((selectorToken) => {
++          if (selectorToken.type === "pseudo-class" && selectorToken.kind === "root") {
++            this.declarationConfig.root = true;
++            rule.value.declarations?.declarations?.forEach((declaration) => this.addDeclaration(declaration));
++            rule.value.declarations?.importantDeclarations?.forEach((declaration) => this.addDeclaration(declaration, true));
++            rule.value.rules?.forEach((rule2) => this.parseRuleRec(rule2));
++          }
++        });
++      });
++      return;
++    }
++    if (rule.type === "supports") {
++      rule.value.rules.forEach((rule2) => this.parseRuleRec(rule2));
++      return;
++    }
++    if (rule.type === "media") {
++      const { mediaQueries } = rule.value.query;
++      this.declarationConfig.mediaQueries.push(...mediaQueries);
++      rule.value.rules.forEach((rule2) => {
++        this.parseRuleRec(rule2);
++        this.declarationConfig = this.getDeclarationConfig();
++      });
++      return;
++    }
++    if (rule.type === "layer-block") {
++      rule.value.rules.forEach((rule2) => this.parseRuleRec(rule2));
++      return;
++    }
++    if (rule.type === "nested-declarations") {
++      rule.value.declarations.declarations?.forEach((declaration) => this.addDeclaration(declaration));
++      rule.value.declarations.importantDeclarations?.forEach((declaration) => this.addDeclaration(declaration, true));
++      return;
++    }
++    if (rule.type === "property" && rule.value.initialValue) {
++      this.vars[rule.value.name] = this.CSS.processValue(rule.value.initialValue);
++    }
++  }
++}
++
++const compileVirtual = async ({ css, cssPath, platform, themes, polyfills, debug, candidates }) => {
++  const compiler = await node.compile(css, {
++    base: path__default.dirname(cssPath),
++    onDependency: () => void 0
++  });
++  const scanner = new oxide.Scanner({
++    sources: [
++      ...compiler.sources,
++      {
++        negated: false,
++        pattern: "**/*",
++        base: path__default.dirname(cssPath)
++      }
++    ]
++  });
++  const tailwindCSS = compiler.build(candidates ?? scanner.scan());
++  if (platform === types.Platform.Web) {
++    return polyfillWeb(tailwindCSS);
++  }
++  const Processor = new ProcessorBuilder(themes, polyfills);
++  stringifyThemes.Logger.debug = debug === true;
++  Processor.transform(tailwindCSS);
++  const stylesheet = serializeJSObject(
++    addMetaToStylesTemplate(Processor, platform),
++    (key, value) => `"${key}": ${value}`
++  );
++  const vars = serializeJSObject(
++    Processor.vars,
++    (key, value) => `get "${key}"() { return ${value} }`
++  );
++  const scopedVars = Object.fromEntries(
++    Object.entries(Processor.scopedVars).map(([scopedVarsName, scopedVars2]) => [
++      scopedVarsName,
++      serializeJSObject(scopedVars2, (key, value) => `get "${key}"() { return ${value} }`)
++    ])
++  );
++  const serializedScopedVars = Object.entries(scopedVars).map(([scopedVarsName, scopedVars2]) => `"${scopedVarsName}": ({ ${scopedVars2} }),`).join("");
++  const currentColorVar = `get currentColor() { return rt.colorScheme === 'dark' ? '#ffffff' : '#000000' },`;
++  return [
++    "({",
++    `scopedVars: ({ ${serializedScopedVars} }),`,
++    `vars: ({ ${currentColorVar} ${vars} }),`,
++    `stylesheet: ({ ${stylesheet} }),`,
++    "})"
++  ].join("");
++};
++
++const injectThemes = async ({
++  themes,
++  dtsPath = "uniwind-types.d.ts",
++  input
++}) => {
++  const stringifiedThemes = stringifyThemes.stringifyThemes(themes);
++  stringifyThemes.buildDtsFile(dtsPath, stringifiedThemes);
++  await stringifyThemes.buildCSS(themes, input);
++  return stringifiedThemes;
++};
++
++let worker;
++try {
++  try {
++    const { unstable_transformerPath } = require("@expo/metro-config");
++    worker = require(unstable_transformerPath);
++  } catch {
++    worker = require("@expo/metro-config/build/transform-worker/transform-worker.js");
++  }
++} catch {
++  worker = require("metro-transform-worker");
++}
++const transform = async (config, projectRoot, filePath, data, options) => {
++  const isCss = options.type !== "asset" && path__default.join(process.cwd(), config.uniwind.cssEntryFile) === path__default.join(process.cwd(), filePath);
++  if (filePath.endsWith("/components/web/metro-injected.js")) {
++    const cssPath2 = path__default.join(process.cwd(), config.uniwind.cssEntryFile);
++    const injectedThemesCode2 = await injectThemes({
++      input: cssPath2,
++      themes: config.uniwind.themes,
++      dtsPath: config.uniwind.dtsFile
++    });
++    data = Buffer.from(
++      [
++        `import { Uniwind } from '${common.name}';`,
++        `Uniwind.__reinit(() => ({}), ${injectedThemesCode2});`
++      ].join(""),
++      "utf-8"
++    );
++  }
++  if (!isCss) {
++    return worker.transform(config, projectRoot, filePath, data, options);
++  }
++  const cssPath = path__default.join(process.cwd(), config.uniwind.cssEntryFile);
++  const injectedThemesCode = await injectThemes({
++    input: cssPath,
++    themes: config.uniwind.themes,
++    dtsPath: config.uniwind.dtsFile
++  });
++  const css = fs__default.readFileSync(filePath, "utf-8");
++  const platform = options.platform;
++  const virtualCode = await compileVirtual({
++    css,
++    platform,
++    themes: config.uniwind.themes,
++    polyfills: config.uniwind.polyfills,
++    cssPath,
++    debug: config.uniwind.debug
++  });
++  const isWeb = platform === types.Platform.Web;
++  data = Buffer.from(
++    isWeb ? virtualCode : [
++      `import { Uniwind } from '${common.name}';`,
++      `Uniwind.__reinit(rt => ${virtualCode}, ${injectedThemesCode});`
++    ].join(""),
++    "utf-8"
++  );
++  const transform2 = await worker.transform(
++    config,
++    projectRoot,
++    `${filePath}${isWeb ? "" : ".js"}`,
++    data,
++    options
++  );
++  transform2.output[0].data.css ??= {};
++  transform2.output[0].data.css.skipCache = true;
++  if (!isWeb) {
++    transform2.output[0].data.css.code = "";
++  }
++  return transform2;
++};
++
++exports.transform = transform; exports._compileVirtual = compileVirtual;
+diff --git a/node_modules/uniwind/dist/metro/metro-transformer.cjs b/node_modules/uniwind/dist/metro/metro-transformer.cjs
+index ffb7245..e600154 100644
+--- a/node_modules/uniwind/dist/metro/metro-transformer.cjs
++++ b/node_modules/uniwind/dist/metro/metro-transformer.cjs
+@@ -87,17 +87,17 @@ const serialize = (value) => {
+   }
+ };
+ const serializeJSObject = (obj, serializer) => {
+-  const serializedObject = common.pipe(obj)(
+-    Object.entries,
+-    (entries) => entries.map(([key, value]) => serializer(key, serialize(value))),
+-    (entries) => entries.join(","),
+-    (result) => {
+-      if (result === "") {
+-        return "";
+-      }
+-      return `${result},`;
++  const rawEntries = Object.entries(obj).map(([key, value]) => serializer(key, serialize(value)));
++  const validateEntry = (entry) => {
++    try {
++      new Function(`function validateJS() { const obj = ({ ${entry} }) }`);
++      return true;
++    } catch {
++      return false;
+     }
+-  );
++  };
++  const validEntries = rawEntries.filter(validateEntry);
++  const serializedObject = validEntries.length === 0 ? "" : `${validEntries.join(",")},`;
+   try {
+     new Function(`function validateJS() { const obj = ({ ${serializedObject} }) }`);
+   } catch {
+diff --git a/node_modules/uniwind/uniwind.css b/node_modules/uniwind/uniwind.css
+index c6c4a54..7c83570 100644
+--- a/node_modules/uniwind/uniwind.css
++++ b/node_modules/uniwind/uniwind.css
+@@ -255,3 +255,43 @@
+ 
+ @custom-variant light (&:where(.light, .light *));
+ @custom-variant dark (&:where(.dark, .dark *));
++@custom-variant lavender-light (&:where(.lavender-light, .lavender-light *));
++@custom-variant lavender-dark (&:where(.lavender-dark, .lavender-dark *));
++@custom-variant mint-light (&:where(.mint-light, .mint-light *));
++@custom-variant mint-dark (&:where(.mint-dark, .mint-dark *));
++@custom-variant sky-light (&:where(.sky-light, .sky-light *));
++@custom-variant sky-dark (&:where(.sky-dark, .sky-dark *));
++@custom-variant alpha-light (&:where(.alpha-light, .alpha-light *));
++@custom-variant alpha-dark (&:where(.alpha-dark, .alpha-dark *));
++
++@theme {
++    --background: unset;
++    --foreground: unset;
++    --surface: unset;
++    --surface-foreground: unset;
++    --overlay: unset;
++    --overlay-foreground: unset;
++    --muted: unset;
++    --default: unset;
++    --default-foreground: unset;
++    --accent: unset;
++    --accent-foreground: unset;
++    --field-background: unset;
++    --field-foreground: unset;
++    --field-placeholder: unset;
++    --field-border: unset;
++    --success: unset;
++    --success-foreground: unset;
++    --warning: unset;
++    --warning-foreground: unset;
++    --danger: unset;
++    --danger-foreground: unset;
++    --segment: unset;
++    --segment-foreground: unset;
++    --border: unset;
++    --divider: unset;
++    --link: unset;
++    --surface-shadow: unset;
++    --overlay-shadow: unset;
++    --field-shadow: unset;
++}
+\ No newline at end of file

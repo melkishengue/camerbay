@@ -10,7 +10,8 @@
     "web": "expo start --web -c",
     "lint": "expo lint",
     "build:ios": "bash scripts/build-ios-local.sh appstore",
-    "build:ios:upload": "bash scripts/build-ios-local.sh appstore --upload"
+    "build:ios:upload": "bash scripts/build-ios-local.sh appstore --upload",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",
@@ -91,6 +92,7 @@
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
   "private": true
