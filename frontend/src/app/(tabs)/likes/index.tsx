@@ -18,7 +18,7 @@ export default function LikesScreen() {
 
   const handleOfferPress = useCallback(
     (offerId: string) => {
-      router.push(`/(tabs)/offers/${offerId}`);
+      router.push(`/(tabs)/likes/offers/${offerId}`);
     },
     [router]
   );

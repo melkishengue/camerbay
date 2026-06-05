@@ -11,6 +11,13 @@ export default function LikesLayout() {
           headerShown: true
         }}
       />
+      <Stack.Screen
+        name="offers/[id]"
+        options={{
+          headerShown: true,
+          headerBackTitle: "Retour"
+        }}
+      />
     </RootTabLayout>
   );
 }

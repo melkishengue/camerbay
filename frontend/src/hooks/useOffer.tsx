@@ -11,6 +11,7 @@ export const useOffer = (offer?: Offer | null) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers"] });
+      queryClient.invalidateQueries({ queryKey: ["my-offers"] });
     }
   });
 
@@ -30,6 +31,7 @@ export const useOffer = (offer?: Offer | null) => {
         queryClient.setQueryData(["offer", offer.id], updatedOffer);
       }
       queryClient.invalidateQueries({ queryKey: ["offers"] });
+      queryClient.invalidateQueries({ queryKey: ["my-offers"] });
     }
   });
 

@@ -43,6 +43,13 @@ export default function AccountLayout() {
           headerBackTitle: "Retour"
         }}
       />
+      <Stack.Screen
+        name="offers/[id]"
+        options={{
+          headerShown: true,
+          headerBackTitle: "Retour"
+        }}
+      />
     </RootTabLayout>
   );
 }

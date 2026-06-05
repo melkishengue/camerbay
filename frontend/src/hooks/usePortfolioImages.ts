@@ -8,6 +8,7 @@ interface UsePortfolioImagesReturn {
   updating: boolean;
   error: string | null;
   updatePortfolioImages: (imageUrls: string[]) => Promise<void>;
+  refetchPortfolioImages: () => Promise<void>;
 }
 
 export const usePortfolioImages = (): UsePortfolioImagesReturn => {
@@ -65,6 +66,7 @@ export const usePortfolioImages = (): UsePortfolioImagesReturn => {
     portfolioImages,
     updating,
     error,
-    updatePortfolioImages
+    updatePortfolioImages,
+    refetchPortfolioImages: getPortfolioImages
   };
 };

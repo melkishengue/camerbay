@@ -136,6 +136,14 @@ function AppContent() {
                     title: "Notifications"
                   }}
                 />
+                <Stack.Screen
+                  name="offers/[id]"
+                  options={{
+                    headerShown: true,
+                    headerBackTitle: "Retour",
+                    title: ""
+                  }}
+                />
               </Stack>
             </NotificationCenterProvider>
             </ChatProvider>

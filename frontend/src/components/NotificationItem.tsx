@@ -53,7 +53,7 @@ function navigateToNotification(notification: AppNotification) {
     case "new_offer_nearby":
     case "offer_status_change":
     case "offer_review":
-      if (data?.offerId) router.push(`/(tabs)/offers/${data.offerId}`);
+      if (data?.offerId) router.push(`/offers/${data.offerId}`);
       break;
     default:
       break;

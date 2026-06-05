@@ -1,13 +1,16 @@
 import { ExpandableText } from "@/components/ExpandableText";
+import { FullScreenOfferForm } from "@/components/FullScreenOfferForm";
 import { FullScreenTextarea } from "@/components/FullScreenTextarea";
 import { ImageUploadManager } from "@/components/imageUploadManager";
 import { InfoItem } from "@/components/InfoItem";
 import { LoginPrompt } from "@/components/LoginPrompt";
+import { MyOfferCard } from "@/components/MyOfferCard";
 import { ProfilePic } from "@/components/profilePic";
 import ScreenContainer from "@/components/screenContainer";
 import { SectionLabel } from "@/components/sectionBlock";
 import { useAppTheme } from "@/contexts/app-theme-context";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyOffers } from "@/hooks/useMyOffers";
 import { usePortfolioImages } from "@/hooks/usePortfolioImages";
 import { truncateTitle } from "@/lib/utils";
 import { useRouter } from "expo-router";
@@ -21,12 +24,20 @@ import {
   FileText,
   LogOut,
   Palette,
+  Plus,
   Scale,
   Shield,
   Star
 } from "lucide-react-native";
 import React, { useState } from "react";
-import { Image, Modal, Pressable, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  Modal,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 
 type ThemeFamily = "default" | "sky" | "mint" | "lavender" | "alpha";
 
@@ -41,11 +52,18 @@ const THEME_OPTIONS: { value: ThemeFamily; label: string; color: string }[] = [
 const AccountScreen = () => {
   const { logout, loading, isAuthenticated, user, refetchUser, updateUser } =
     useAuth();
-  const { portfolioImages, updatePortfolioImages } = usePortfolioImages();
+  const { portfolioImages, updatePortfolioImages, refetchPortfolioImages } =
+    usePortfolioImages();
+  const {
+    offers: myOffers,
+    isLoading: myOffersLoading,
+    refetch: refetchMyOffers
+  } = useMyOffers();
   const { themeFamily, setThemeFamily } = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [themePickerVisible, setThemePickerVisible] = useState(false);
+  const [createOfferVisible, setCreateOfferVisible] = useState(false);
   const router = useRouter();
   const [themeColorAccentForeground, accentColor] = useThemeColor([
     "accent-foreground",
@@ -63,7 +81,11 @@ const AccountScreen = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await refetchUser();
+      await Promise.all([
+        refetchUser(),
+        refetchMyOffers(),
+        refetchPortfolioImages()
+      ]);
     } catch (error) {
     } finally {
       setRefreshing(false);
@@ -74,6 +96,10 @@ const AccountScreen = () => {
     try {
       await updatePortfolioImages(imageUrls);
     } catch (err) {}
+  };
+
+  const handleOfferMutated = async () => {
+    await Promise.all([refetchMyOffers(), refetchPortfolioImages()]);
   };
 
   if (loading && !refreshing) {
@@ -333,6 +359,83 @@ const AccountScreen = () => {
         </View>
       )}
 
+      {/* ── My offers (provider only) ── */}
+      {user?.isProvider && (
+        <View style={{ marginBottom: 20 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 10,
+              marginTop: 4
+            }}
+          >
+            <Text
+              className="text-muted"
+              style={{
+                fontSize: 10.5,
+                fontFamily: "Inter_700Bold",
+                letterSpacing: 1.1,
+                textTransform: "uppercase"
+              }}
+            >
+              Mes offres
+            </Text>
+            <TouchableOpacity
+              onPress={() => setCreateOfferVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 99,
+                backgroundColor: accentColor + "18"
+              }}
+            >
+              <Plus size={13} color={accentColor} strokeWidth={2.5} />
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontFamily: "Inter_600SemiBold",
+                  color: accentColor
+                }}
+              >
+                Nouvelle offre
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {myOffersLoading ? (
+            <View style={{ paddingVertical: 20, alignItems: "center" }}>
+              <Spinner size="sm" />
+            </View>
+          ) : myOffers.length === 0 ? (
+            <View
+              className="bg-surface border border-border rounded-2xl"
+              style={{ padding: 20, alignItems: "center" }}
+            >
+              <Text
+                className="text-muted"
+                style={{ fontFamily: "Inter_400Regular", fontSize: 13 }}
+              >
+                Aucune offre pour l&apos;instant
+              </Text>
+            </View>
+          ) : (
+            myOffers.map((offer) => (
+              <MyOfferCard
+                key={offer.id}
+                offer={offer}
+                onOfferUpdated={handleOfferMutated}
+              />
+            ))
+          )}
+        </View>
+      )}
+
       {/* ── Appearance ── */}
       <SectionLabel>Apparence</SectionLabel>
       <View
@@ -362,9 +465,14 @@ const AccountScreen = () => {
             </Text>
             <Text
               className="text-muted"
-              style={{ fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 12,
+                marginTop: 2
+              }}
             >
-              {THEME_OPTIONS.find((t) => t.value === themeFamily)?.label ?? themeFamily}
+              {THEME_OPTIONS.find((t) => t.value === themeFamily)?.label ??
+                themeFamily}
             </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -374,7 +482,8 @@ const AccountScreen = () => {
                 height: 16,
                 borderRadius: 8,
                 backgroundColor:
-                  THEME_OPTIONS.find((t) => t.value === themeFamily)?.color ?? "#64748b"
+                  THEME_OPTIONS.find((t) => t.value === themeFamily)?.color ??
+                  "#64748b"
               }}
             />
             <ChevronDown size={18} color="#64748b" strokeWidth={1.75} />
@@ -428,6 +537,21 @@ const AccountScreen = () => {
         </Button>
       </View>
 
+      {/* ── Create offer modal ── */}
+      <Modal
+        visible={createOfferVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <FullScreenOfferForm
+          mode="create"
+          onClose={async () => {
+            setCreateOfferVisible(false);
+            await handleOfferMutated();
+          }}
+        />
+      </Modal>
+
       {/* ── Theme picker modal ── */}
       <Modal
         visible={themePickerVisible}
@@ -436,13 +560,21 @@ const AccountScreen = () => {
         onRequestClose={() => setThemePickerVisible(false)}
       >
         <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.4)",
+            justifyContent: "flex-end"
+          }}
           onPress={() => setThemePickerVisible(false)}
         >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View
               className="bg-surface border-t border-border"
-              style={{ borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 32 }}
+              style={{
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                paddingBottom: 32
+              }}
             >
               <View
                 style={{
@@ -454,7 +586,13 @@ const AccountScreen = () => {
                 className="border-border"
               >
                 <View
-                  style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "#64748b40", marginBottom: 12 }}
+                  style={{
+                    width: 36,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: "#64748b40",
+                    marginBottom: 12
+                  }}
                 />
                 <Text
                   className="text-foreground"
@@ -491,7 +629,10 @@ const AccountScreen = () => {
                     className="text-foreground"
                     style={{
                       flex: 1,
-                      fontFamily: themeFamily === option.value ? "Inter_700Bold" : "Inter_400Regular",
+                      fontFamily:
+                        themeFamily === option.value
+                          ? "Inter_700Bold"
+                          : "Inter_400Regular",
                       fontSize: 15
                     }}
                   >
