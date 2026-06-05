@@ -1,5 +1,7 @@
 package com.camerbay.camerbay.user;
 
+import com.camerbay.camerbay.BusinessException;
+import com.camerbay.camerbay.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
@@ -20,12 +22,13 @@ public class PhoneNumber {
 
   public static PhoneNumber of(String phone) {
     if (phone == null || phone.isBlank()) {
-      throw new IllegalArgumentException("Phone number cannot be empty");
+      throw new BusinessException(ErrorCode.PHONE_INVALID, "Phone number cannot be empty");
     }
 
     String cleaned = phone.trim();
     if (!cleaned.startsWith("+")) {
-      throw new IllegalArgumentException("Phone number must be in E.164 format (start with +)");
+      throw new BusinessException(ErrorCode.PHONE_INVALID,
+          "Phone number must be in E.164 format (start with +)");
     }
 
     return new PhoneNumber(cleaned);

@@ -22,6 +22,11 @@ public class ProblemDetail {
   private String type;
 
   /**
+   * Machine-readable error code for client-side translation
+   */
+  private String code;
+
+  /**
    * A short, human-readable summary of the problem type
    */
   private String title;

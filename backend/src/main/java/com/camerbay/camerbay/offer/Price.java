@@ -3,6 +3,8 @@ package com.camerbay.camerbay.offer;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+import com.camerbay.camerbay.BusinessException;
+import com.camerbay.camerbay.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
@@ -42,7 +44,8 @@ public class Price {
     if (promotionalAmount != null) {
       validateAmount(promotionalAmount);
       if (amount != null && promotionalAmount.compareTo(amount) >= 0) {
-        throw new IllegalArgumentException("Promotional price must be less than regular price");
+        throw new BusinessException(ErrorCode.PRICE_PROMO_INVALID,
+            "Promotional price must be less than regular price");
       }
     }
     return new Price(amount, promotionalAmount, Currency.EUR);
@@ -54,10 +57,10 @@ public class Price {
 
   private static void validateAmount(BigDecimal amount) {
     if (amount.compareTo(MIN_PRICE) < 0) {
-      throw new IllegalArgumentException("Price cannot be negative");
+      throw new BusinessException(ErrorCode.PRICE_NEGATIVE, "Price cannot be negative");
     }
     if (amount.compareTo(MAX_PRICE) > 0) {
-      throw new IllegalArgumentException("Price cannot exceed " + MAX_PRICE);
+      throw new BusinessException(ErrorCode.PRICE_EXCEEDS_MAX, "Price cannot exceed " + MAX_PRICE);
     }
   }
 

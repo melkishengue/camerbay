@@ -18,9 +18,12 @@ public class AuthController {
   private final AuthService authService;
 
   /**
-   * Exchanges a third-party idToken (Google) for a backend-issued JWT and refresh token.
+   * Exchanges a third-party idToken (Google) for a backend-issued JWT and refresh
+   * token.
    *
-   * <pre>POST /api/v1/auth/login</pre>
+   * <pre>
+   * POST / api / v1 / auth / login
+   * </pre>
    */
   @PostMapping("/login")
   public ResponseEntity<AppTokenResponse> login(@RequestBody LoginRequest request) {
@@ -39,7 +42,9 @@ public class AuthController {
   /**
    * Issues a new access token and rotates the refresh token.
    *
-   * <pre>POST /api/v1/auth/refresh</pre>
+   * <pre>
+   * POST / api / v1 / auth / refresh
+   * </pre>
    */
   @PostMapping("/refresh")
   public ResponseEntity<AppTokenResponse> refresh(@RequestBody RefreshRequest request) {
@@ -58,7 +63,9 @@ public class AuthController {
   /**
    * Revokes the provided refresh token.
    *
-   * <pre>POST /api/v1/auth/logout</pre>
+   * <pre>
+   * POST / api / v1 / auth / logout
+   * </pre>
    */
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(@RequestBody LogoutRequest request) {

@@ -28,6 +28,26 @@ public class GlobalExceptionHandler {
 
         private static final String PROBLEM_BASE_TYPE = "https://api.camerbay.com/problems";
 
+        @ExceptionHandler(AppException.class)
+        public ResponseEntity<ProblemDetail> handleAppException(
+                        AppException ex,
+                        WebRequest request) {
+                log.error("Application error [{}]: {}", ex.getCode(), ex.getMessage());
+
+                ProblemDetail problem = ProblemDetail.builder()
+                                .type(PROBLEM_BASE_TYPE + "/" + ex.getCode().name().toLowerCase().replace('_', '-'))
+                                .code(ex.getCode().name())
+                                .title(ex.getMessage())
+                                .status(ex.getStatus().value())
+                                .detail(ex.getMessage())
+                                .instance(getRequestUri(request))
+                                .timestamp(LocalDateTime.now())
+                                .properties(buildDevModeProperties(ex))
+                                .build();
+
+                return ResponseEntity.status(ex.getStatus()).body(problem);
+        }
+
         @ExceptionHandler(MissingRequestHeaderException.class)
         public ResponseEntity<ProblemDetail> handleMissingHeader(
                         MissingRequestHeaderException ex,
@@ -42,6 +62,7 @@ public class GlobalExceptionHandler {
 
                 ProblemDetail problem = ProblemDetail.builder()
                                 .type(PROBLEM_BASE_TYPE + "/missing-header")
+                                .code(ErrorCode.MISSING_HEADER.name())
                                 .title("Missing Required Header")
                                 .status(HttpStatus.UNAUTHORIZED.value())
                                 .detail("Missing required authentication header: " + ex.getHeaderName())
@@ -74,6 +95,7 @@ public class GlobalExceptionHandler {
 
                 ProblemDetail problem = ProblemDetail.builder()
                                 .type(PROBLEM_BASE_TYPE + "/validation-error")
+                                .code(ErrorCode.VALIDATION_ERROR.name())
                                 .title("Validation Failed")
                                 .status(HttpStatus.BAD_REQUEST.value())
                                 .detail("Request validation failed for " + fieldErrors.size() + " field(s)")
@@ -98,6 +120,7 @@ public class GlobalExceptionHandler {
 
                 ProblemDetail problem = ProblemDetail.builder()
                                 .type(PROBLEM_BASE_TYPE + "/validation-error")
+                                .code(ErrorCode.VALIDATION_ERROR.name())
                                 .title("Validation Failed")
                                 .status(HttpStatus.BAD_REQUEST.value())
                                 .detail(message)
@@ -117,6 +140,7 @@ public class GlobalExceptionHandler {
 
                 ProblemDetail problem = ProblemDetail.builder()
                                 .type(PROBLEM_BASE_TYPE + "/internal-error")
+                                .code(ErrorCode.INTERNAL_ERROR.name())
                                 .title("Internal Server Error")
                                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                                 .detail("An unexpected error occurred")

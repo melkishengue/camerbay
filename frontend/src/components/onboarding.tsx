@@ -85,8 +85,9 @@ export function BasicInfoStep({ control, errors }: BasicInfoStepProps) {
           name="phone"
           rules={{
             pattern: {
-              value: /^[+]?[\d\s-()]+$/,
-              message: "Format de téléphone invalide"
+              value: /^\+[\d\s\-()]+$/,
+              message:
+                "Doit commencer par + et l'indicatif pays (ex: +49 17643244788)"
             }
           }}
           render={({ field: { onChange, value } }) => (
@@ -246,15 +247,18 @@ export function OnboardingNavigation({
 
 interface PhotoUploadStepProps {
   localImageUri: string | null;
+  existingPhotoUrl?: string | null;
   isUploading: boolean;
   onPickImage: () => void;
 }
 
 export function PhotoUploadStep({
   localImageUri,
+  existingPhotoUrl,
   isUploading,
   onPickImage
 }: PhotoUploadStepProps) {
+  const displayUri = localImageUri ?? existingPhotoUrl ?? null;
   const [accentColor] = useThemeColor(["accent"]);
 
   return (
@@ -306,8 +310,8 @@ export function PhotoUploadStep({
         icon={<Camera size={11} color={accentColor} strokeWidth={2.5} />}
       >
         <View style={{ alignItems: "center", gap: 16 }}>
-          {localImageUri ? (
-            /* Image selected */
+          {displayUri ? (
+            /* Image selected (new local pick or existing remote photo) */
             <View style={{ alignItems: "center", gap: 16 }}>
               <View
                 style={{
@@ -319,7 +323,7 @@ export function PhotoUploadStep({
                 }}
               >
                 <Image
-                  source={{ uri: localImageUri }}
+                  source={{ uri: displayUri }}
                   style={{ width: 160, height: 160, borderRadius: 80 }}
                 />
                 {isUploading && (
@@ -350,7 +354,7 @@ export function PhotoUploadStep({
                     className="text-foreground"
                     style={{ fontSize: 14, fontFamily: "Inter_600SemiBold" }}
                   >
-                    Photo ajoutée
+                    {localImageUri ? "Photo ajoutée" : "Photo importée de votre compte"}
                   </Text>
                 </View>
                 <Text

@@ -45,6 +45,7 @@ public class AuthService {
     String sub = claims.getSubject();
     String email = getStringClaim(claims, "email");
     String name = getStringClaim(claims, "name");
+    String photoImageUrl = getStringClaim(claims, "picture");
 
     // Derive a username from the email prefix when name is absent
     String username = (name != null && !name.isBlank()) ? name : deriveUsername(email);
@@ -53,7 +54,7 @@ public class AuthService {
         existing -> log.info("Existing user authenticated: {}", existing.getEmail()),
         () -> {
           log.info("Creating new user for authProviderId={}", sub);
-          userRepository.save(User.createUserForAuth(sub, email, username));
+          userRepository.save(User.createUserForAuth(sub, email, username, name, photoImageUrl));
         });
 
     String accessToken = appJwtService.generateToken(email, name);

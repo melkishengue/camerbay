@@ -89,17 +89,33 @@ public class User {
     return phoneNumber != null ? phoneNumber.getValue() : null;
   }
 
-  public static User createUserForAuth(String authProviderId, String email, String username) {
+  public static User createUserForAuth(String authProviderId, String email, String username,
+      String name, String photoImageUrl) {
     return User.builder()
         .authProviderId(authProviderId)
         .email(email)
         .username(username)
+        .name(name)
+        .photoImageUrl(photoImageUrl)
         .totalReviewsCount(0)
         .averageRating(BigDecimal.ZERO)
         .active(true)
         .onBoardingCompleted(false)
         .isProvider(true)
         .build();
+  }
+
+  /**
+   * Updates name and photo from the auth provider only when the fields are not yet set.
+   * Preserves any manually entered data.
+   */
+  public void updateFromProvider(String name, String photoImageUrl) {
+    if (this.name == null && name != null) {
+      this.name = name;
+    }
+    if (this.photoImageUrl == null && photoImageUrl != null) {
+      this.photoImageUrl = photoImageUrl;
+    }
   }
 
   public void updateUser(UpdateUserRequest updateRequest) {
@@ -118,6 +134,10 @@ public class User {
   }
 
   public void onboard(OnboardingRequest request) {
+    if (request.name() != null && !request.name().isBlank()) {
+      this.name = request.name();
+    }
+
     if (request.photoImageUrl() != null) {
       this.photoImageUrl = request.photoImageUrl();
     }

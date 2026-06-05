@@ -9,6 +9,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.camerbay.camerbay.ErrorCode;
+import com.camerbay.camerbay.NotFoundException;
 import com.camerbay.camerbay.auth.AuthUser;
 import com.camerbay.camerbay.offer.OfferService;
 
@@ -26,19 +28,19 @@ public class UserService {
 
   public UserResponse findById(UUID id) {
     User user = userRepository.findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
     return UserResponse.from(user);
   }
 
   public UserResponse findByEmail(String email) {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
     return UserResponse.from(user);
   }
 
   public User findUserByEmail(String email) {
     return userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
   }
 
   public Optional<UserResponse> findByEmailOptional(String email) {
@@ -48,7 +50,7 @@ public class UserService {
 
   public UserProfileResponse getCurrentUserProfile(String email) {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
     UserResponse userResponse = UserResponse.from(user);
     return UserProfileResponse.from(userResponse);
@@ -56,7 +58,7 @@ public class UserService {
 
   public UserPortfolioResponse getUserPortfolioImages(UUID id) {
     userRepository.findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
     List<String> photos = offerService.getOfferPhotosByProvider(id);
 
@@ -65,7 +67,7 @@ public class UserService {
 
   public UserProfileResponse getUserById(UUID id) {
     User user = userRepository.findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("User not found for id" + id.toString()));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
     UserResponse userResponse = UserResponse.from(user);
     return UserProfileResponse.from(userResponse);
@@ -90,7 +92,7 @@ public class UserService {
   @Transactional
   public UserProfileResponse updateUser(AuthUser currentUser, UpdateUserRequest request) {
     User user = userRepository.findByEmail(currentUser.getEmail())
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
     user.updateUser(request);
 

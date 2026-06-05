@@ -1,3 +1,4 @@
+import { useErrorToast } from "@/hooks/useErrorToast";
 import { Button, useToast } from "heroui-native";
 import { X } from "lucide-react-native";
 import React, { useState } from "react";
@@ -35,6 +36,7 @@ export const FullScreenTextarea: React.FC<FullScreenTextareaProps> = ({
   const [text, setText] = useState(initialValue);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { showError } = useErrorToast();
 
   const handleSave = async () => {
     try {
@@ -50,14 +52,7 @@ export const FullScreenTextarea: React.FC<FullScreenTextareaProps> = ({
         onActionPress: ({ hide }) => hide()
       });
     } catch (error) {
-      toast.show({
-        duration: 3000,
-        variant: "danger",
-        label: "Oops!",
-        description: `Une erreur est survenue.`,
-        actionLabel: "Fermer",
-        onActionPress: ({ hide }) => hide()
-      });
+      showError(error);
     } finally {
       setIsSaving(false);
     }

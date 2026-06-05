@@ -1,4 +1,5 @@
 import { OfferForm } from "@/components/offerForm";
+import { useErrorToast } from "@/hooks/useErrorToast";
 import { useOffer } from "@/hooks/useOffer";
 import { Offer, OfferFormResult, UpdateOfferRequest } from "@/types/offer";
 import { useToast } from "heroui-native";
@@ -25,6 +26,7 @@ export const FullScreenOfferForm: React.FC<FullScreenOfferFormProps> = ({
 }) => {
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
+  const { showError } = useErrorToast();
   const { createOffer, updateOffer, isCreating, isUpdating } =
     useOffer(initialData);
 
@@ -63,15 +65,7 @@ export const FullScreenOfferForm: React.FC<FullScreenOfferFormProps> = ({
         onActionPress: ({ hide }) => hide()
       });
     } catch (error) {
-
-      toast.show({
-        duration: 3000,
-        variant: "danger",
-        label: "Oops!",
-        description: "Une erreur est survenue.",
-        actionLabel: "Fermer",
-        onActionPress: ({ hide }) => hide()
-      });
+      showError(error);
     }
   };
 

@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/config/config";
 import { useAuth } from "@/hooks/useAuth";
+import { tError } from "@/i18n";
 import { supabase } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -28,12 +29,17 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function useOnboarding() {
   const router = useRouter();
-  const { accessToken, login, refetchUser } = useAuth();
+  const { accessToken, login, refetchUser, user, oidcUser } = useAuth();
   const { uploadImage } = useSupabaseStorage();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [localImageUri, setLocalImageUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Remote photo URL already associated with the user (from Google or a previous upload).
+  // Kept separate from localImageUri which is a new device-local file the user just picked.
+  const existingPhotoUrl =
+    user?.profilePhotoUrl ?? oidcUser?.picture ?? null;
 
   const {
     control,
@@ -44,11 +50,11 @@ export function useOnboarding() {
   } = useForm<OnboardingFormData>({
     mode: "onChange",
     defaultValues: {
-      phone: "",
-      name: "",
-      businessName: "",
-      description: "",
-      photoImageUrl: ""
+      phone: user?.phone ?? "",
+      name: user?.name ?? "",
+      businessName: user?.businessName ?? "",
+      description: user?.description ?? "",
+      photoImageUrl: user?.profilePhotoUrl ?? ""
     }
   });
 
@@ -176,7 +182,7 @@ export function useOnboarding() {
     try {
       setIsUploading(true);
 
-      let photoImageUrl: string | undefined = undefined;
+      let photoImageUrl: string | undefined = existingPhotoUrl ?? undefined;
       if (localImageUri) {
         try {
           const result = await uploadImage(localImageUri);
@@ -188,7 +194,6 @@ export function useOnboarding() {
           photoImageUrl = result.url;
           setValue("photoImageUrl", result.url);
         } catch (error) {
-
           alert("Impossible de télécharger la photo. Veuillez réessayer.");
           return;
         }
@@ -230,10 +235,7 @@ export function useOnboarding() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message ||
-            `Failed to complete onboarding: ${response.status}`
-        );
+        throw new Error(tError(errorData.code ?? "UNKNOWN_ERROR"));
       }
 
       const result = await response.json();
@@ -248,10 +250,8 @@ export function useOnboarding() {
         router.replace("/(tabs)/account");
       }
     } catch (error) {
-
-      alert(
-        "Une erreur est survenue lors de la finalisation de votre inscription. Veuillez réessayer."
-      );
+      const message = error instanceof Error ? error.message : tError("UNKNOWN_ERROR");
+      alert(message);
     } finally {
       setIsUploading(false);
     }
@@ -276,6 +276,7 @@ export function useOnboarding() {
 
     // Image handling
     localImageUri,
+    existingPhotoUrl,
     isUploading,
     handlePickImage,
 

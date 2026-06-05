@@ -71,17 +71,21 @@ public class AuthSyncService {
     String email = claims.getStringClaim("email");
     String username = claims.getStringClaim("preferred_username");
     String name = claims.getStringClaim("name");
+    String picture = claims.getStringClaim("picture");
 
-    log.info("The name is {}", name);
-    log.info("The username is {}", username);
+    log.info("Syncing user: authProviderId={}, username={}, hasName={}, hasPicture={}",
+        authProviderId, username, name != null, picture != null);
 
-    Optional<User> user = userRepository.findByAuthProviderId(authProviderId);
-    if (user.isPresent()) {
-      log.info("User already exist {}", authProviderId);
-      return UserResponse.from(user.get());
+    Optional<User> existingUser = userRepository.findByAuthProviderId(authProviderId);
+    if (existingUser.isPresent()) {
+      log.info("User already exists {}", authProviderId);
+      User user = existingUser.get();
+      user.updateFromProvider(name, picture);
+      return UserResponse.from(userRepository.save(user));
     }
 
-    User savedUser = userRepository.save(User.createUserForAuth(authProviderId, email, username));
+    User savedUser = userRepository.save(
+        User.createUserForAuth(authProviderId, email, username, name, picture));
 
     return UserResponse.from(savedUser);
   }

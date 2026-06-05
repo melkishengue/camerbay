@@ -11,6 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.camerbay.camerbay.BusinessException;
+import com.camerbay.camerbay.ErrorCode;
+import com.camerbay.camerbay.NotFoundException;
 import com.camerbay.camerbay.category.Category;
 import com.camerbay.camerbay.category.CategoryRepository;
 import com.camerbay.camerbay.notification.NotificationService;
@@ -37,20 +40,21 @@ public class OfferService {
   @Transactional
   public OfferResponse createOffer(CreateOfferRequest request, String email) {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
     long activeOffersCount = offerRepository.countActiveByProviderId(user.getId());
     if (activeOffersCount >= MAX_ACTIVE_OFFERS_PER_PROVIDER) {
-      throw new IllegalArgumentException("Maximum " + MAX_ACTIVE_OFFERS_PER_PROVIDER + " active offers allowed");
+      throw new BusinessException(ErrorCode.OFFER_MAX_ACTIVE_REACHED,
+          "Maximum " + MAX_ACTIVE_OFFERS_PER_PROVIDER + " active offers allowed");
     }
 
-    List<PricingItem> pricingItems = new ArrayList();
+    List<PricingItem> pricingItems = new ArrayList<>();
     if (request.pricingItems() != null) {
       pricingItems = request.pricingItems().stream().map(PricingItem::fromRequest).toList();
     }
 
     Category category = categoryRepository.findById(request.categoryId())
-        .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.CATEGORY_NOT_FOUND, "Category not found"));
 
     Offer offer = Offer.create(
         user,
@@ -87,7 +91,7 @@ public class OfferService {
   @Transactional
   public OfferResponse updateOffer(UUID offerId, UpdateOfferRequest request, String email) {
     Offer offer = offerRepository.findByIdWithProvider(offerId)
-        .orElseThrow(() -> new IllegalArgumentException("Offer not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.OFFER_NOT_FOUND, "Offer not found"));
 
     validateOwnership(offer, email);
 
@@ -104,7 +108,7 @@ public class OfferService {
   @Transactional
   public void deleteOffer(UUID offerId, String email) {
     Offer offer = offerRepository.findByIdWithProvider(offerId)
-        .orElseThrow(() -> new IllegalArgumentException("Offer not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.OFFER_NOT_FOUND, "Offer not found"));
 
     validateOwnership(offer, email);
 
@@ -113,7 +117,7 @@ public class OfferService {
 
   public OfferResponse getOfferById(UUID id) {
     Offer offer = offerRepository.findByIdWithProvider(id)
-        .orElseThrow(() -> new IllegalArgumentException("Offer not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.OFFER_NOT_FOUND, "Offer not found"));
 
     return OfferResponse.from(offer);
   }
@@ -133,7 +137,7 @@ public class OfferService {
 
   public List<OfferResponse> getMyOffers(String email) {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
     List<Offer> offers = offerRepository.findByProviderIdWithProvider(user.getId());
     return offers.stream()
@@ -167,10 +171,11 @@ public class OfferService {
 
   private void validateOwnership(Offer offer, String email) {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
     if (!offer.getProvider().getId().equals(user.getId())) {
-      throw new IllegalArgumentException("You don't have permission to modify this offer");
+      throw new BusinessException(ErrorCode.OFFER_ACCESS_DENIED,
+          "You don't have permission to modify this offer");
     }
   }
 }

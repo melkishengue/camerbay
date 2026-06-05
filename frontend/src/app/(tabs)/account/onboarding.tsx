@@ -7,7 +7,7 @@ import {
 import ScreenContainer from "@/components/screenContainer";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import React from "react";
-import { ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
 export default function OnboardingScreen() {
   const {
@@ -21,6 +21,7 @@ export default function OnboardingScreen() {
     handleNext,
     handleBack,
     localImageUri,
+    existingPhotoUrl,
     isUploading,
     handlePickImage
   } = useOnboarding();
@@ -33,6 +34,7 @@ export default function OnboardingScreen() {
         return (
           <PhotoUploadStep
             localImageUri={localImageUri}
+            existingPhotoUrl={existingPhotoUrl}
             isUploading={isUploading}
             onPickImage={handlePickImage}
           />
@@ -49,22 +51,28 @@ export default function OnboardingScreen() {
         totalSteps={totalSteps}
         progress={progress}
       />
-      <ScrollView
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
-        className="px-4"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {renderStep()}
-        <OnboardingNavigation
-          currentStepIndex={currentStepIndex}
-          isLastStep={isLastStep}
-          canProceed={canProceed}
-          isUploading={isUploading}
-          onBack={handleBack}
-          onNext={handleNext}
-        />
-      </ScrollView>
+        <ScrollView
+          style={{ flex: 1 }}
+          className="px-4"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {renderStep()}
+          <OnboardingNavigation
+            currentStepIndex={currentStepIndex}
+            isLastStep={isLastStep}
+            canProceed={canProceed}
+            isUploading={isUploading}
+            onBack={handleBack}
+            onNext={handleNext}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }

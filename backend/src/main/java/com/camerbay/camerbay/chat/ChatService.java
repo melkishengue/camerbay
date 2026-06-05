@@ -9,6 +9,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.camerbay.camerbay.BusinessException;
+import com.camerbay.camerbay.ErrorCode;
+import com.camerbay.camerbay.NotFoundException;
 import com.camerbay.camerbay.auth.AuthUser;
 import com.camerbay.camerbay.notification.NotificationService;
 import com.camerbay.camerbay.notification.NotificationType;
@@ -56,10 +59,10 @@ public class ChatService {
   public Page<MessageResponse> getMessages(AuthUser currentUser, UUID conversationId, int page, int size) {
     UserResponse me = userService.findByEmail(currentUser.getEmail());
     Conversation conv = conversationRepository.findById(conversationId)
-        .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.CONVERSATION_NOT_FOUND, "Conversation not found"));
 
     if (!conv.getMemberIds().contains(me.id())) {
-      throw new IllegalArgumentException("Not a member of this conversation");
+      throw new BusinessException(ErrorCode.CONVERSATION_ACCESS_DENIED, "Not a member of this conversation");
     }
 
     return messageRepository
@@ -71,10 +74,10 @@ public class ChatService {
   public MessageResponse sendMessage(AuthUser currentUser, UUID conversationId, String text) {
     UserResponse me = userService.findByEmail(currentUser.getEmail());
     Conversation conv = conversationRepository.findById(conversationId)
-        .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+        .orElseThrow(() -> new NotFoundException(ErrorCode.CONVERSATION_NOT_FOUND, "Conversation not found"));
 
     if (!conv.getMemberIds().contains(me.id())) {
-      throw new IllegalArgumentException("Not a member of this conversation");
+      throw new BusinessException(ErrorCode.CONVERSATION_ACCESS_DENIED, "Not a member of this conversation");
     }
 
     ChatMessage message = ChatMessage.create(conversationId, me.id(), text);

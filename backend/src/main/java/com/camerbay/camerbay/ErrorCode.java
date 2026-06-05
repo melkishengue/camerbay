@@ -1,0 +1,32 @@
+package com.camerbay.camerbay;
+
+public enum ErrorCode {
+
+  // User
+  USER_NOT_FOUND,
+
+  // Offer
+  OFFER_NOT_FOUND,
+  OFFER_MAX_ACTIVE_REACHED,
+  OFFER_ACCESS_DENIED,
+
+  // Category
+  CATEGORY_NOT_FOUND,
+
+  // Conversation
+  CONVERSATION_NOT_FOUND,
+  CONVERSATION_ACCESS_DENIED,
+
+  // Phone
+  PHONE_INVALID,
+
+  // Price
+  PRICE_NEGATIVE,
+  PRICE_EXCEEDS_MAX,
+  PRICE_PROMO_INVALID,
+
+  // System
+  VALIDATION_ERROR,
+  MISSING_HEADER,
+  INTERNAL_ERROR,
+}

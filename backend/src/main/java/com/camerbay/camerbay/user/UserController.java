@@ -42,32 +42,20 @@ public class UserController {
 
   @GetMapping("/me")
   public ResponseEntity<UserProfileResponse> getCurrentUser() {
-    try {
-      UserProfileResponse profile = userService.getCurrentUserProfile(authFacade.getCurrentUserEmail());
-      return ResponseEntity.ok(profile);
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.notFound().build();
-    }
+    UserProfileResponse profile = userService.getCurrentUserProfile(authFacade.getCurrentUserEmail());
+    return ResponseEntity.ok(profile);
   }
 
   @GetMapping("/{id}/portfolio")
   public ResponseEntity<UserPortfolioResponse> getPortfolioImages(@PathVariable String id) {
-    try {
-      UserPortfolioResponse profile = userService.getUserPortfolioImages(UUID.fromString(id));
-      return ResponseEntity.ok(profile);
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.notFound().build();
-    }
+    UserPortfolioResponse profile = userService.getUserPortfolioImages(UUID.fromString(id));
+    return ResponseEntity.ok(profile);
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<UserProfileResponse> getUser(@PathVariable String id) {
-    try {
-      UserProfileResponse profile = userService.getUserById(UUID.fromString(id));
-      return ResponseEntity.ok(profile);
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.notFound().build();
-    }
+    UserProfileResponse profile = userService.getUserById(UUID.fromString(id));
+    return ResponseEntity.ok(profile);
   }
 
   @PostMapping("/sync")
