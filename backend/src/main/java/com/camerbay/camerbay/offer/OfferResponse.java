@@ -28,8 +28,7 @@ public record OfferResponse(
     return new OfferResponse(
         offer.getId(),
         offer.getProvider().getId(),
-        !offer.getProvider().getBusinessName().isBlank() ? offer.getProvider().getBusinessName()
-            : offer.getProvider().getUsername(),
+        offer.getProvider().resolveProviderName(),
         offer.getProvider().getPhotoImageUrl(),
         offer.getProvider().getBusinessName(),
         offer.getProvider().getAverageRating(),

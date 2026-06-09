@@ -106,7 +106,8 @@ public class User {
   }
 
   /**
-   * Updates name and photo from the auth provider only when the fields are not yet set.
+   * Updates name and photo from the auth provider only when the fields are not
+   * yet set.
    * Preserves any manually entered data.
    */
   public void updateFromProvider(String name, String photoImageUrl) {
@@ -155,6 +156,10 @@ public class User {
     }
 
     this.onBoardingCompleted = true;
+  }
+
+  public String resolveProviderName() {
+    return (businessName != null && !businessName.isBlank()) ? businessName : username;
   }
 
   public void deactivate() {
