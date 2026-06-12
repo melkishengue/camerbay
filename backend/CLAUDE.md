@@ -32,6 +32,25 @@ CREATE INDEX IF NOT EXISTS idx_offers_title_trgm ON offers USING gin (title gin_
 CREATE INDEX IF NOT EXISTS idx_offers_description_trgm ON offers USING gin (description gin_trgm_ops);
 ```
 
+**Full-text search columns + GIN indexes** (English + French, typo fallback via trigram). Hibernate won't generate generated columns:
+
+```sql
+ALTER TABLE offers
+  ADD COLUMN IF NOT EXISTS search_vector_en tsvector
+    GENERATED ALWAYS AS (
+      setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+      setweight(to_tsvector('english', coalesce(description, '')), 'B')
+    ) STORED,
+  ADD COLUMN IF NOT EXISTS search_vector_fr tsvector
+    GENERATED ALWAYS AS (
+      setweight(to_tsvector('french', coalesce(title, '')), 'A') ||
+      setweight(to_tsvector('french', coalesce(description, '')), 'B')
+    ) STORED;
+
+CREATE INDEX IF NOT EXISTS idx_offers_fts_en ON offers USING gin (search_vector_en);
+CREATE INDEX IF NOT EXISTS idx_offers_fts_fr ON offers USING gin (search_vector_fr);
+```
+
 ## Architecture
 
 Spring Boot 4.0.1 marketplace API (Java 17) connecting service providers with clients. PostgreSQL + PostGIS for geospatial data, Zitadel for OAuth2 auth, Stream.io for chat.

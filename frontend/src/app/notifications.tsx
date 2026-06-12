@@ -16,7 +16,7 @@ import {
 
 function MarkAllReadButton() {
   const { markAllAsRead, unreadCount } = useNotificationCenter();
-  const [primaryColor] = useThemeColor(["primary"]);
+  const [primaryColor] = useThemeColor(["accent"]);
 
   if (unreadCount === 0) return null;
 
@@ -30,7 +30,7 @@ function MarkAllReadButton() {
 }
 
 function EmptyState() {
-  const [mutedColor] = useThemeColor(["default-400"]);
+  const [mutedColor] = useThemeColor(["muted"]);
 
   return (
     <View style={styles.emptyContainer}>

@@ -101,7 +101,7 @@ export function CategorySelect({
                   <Select.Overlay />
                   <Select.Content
                     width={340}
-                    className="rounded-2xl h-[200px]"
+                    className="rounded-2xl max-h-[280px]"
                     placement="bottom"
                   >
                     <ScrollView>
@@ -110,14 +110,7 @@ export function CategorySelect({
                           key={option.value}
                           value={option.value}
                           label={option.label}
-                        >
-                          <View className="flex-1">
-                            <Text className="text-base text-foreground">
-                              {option.label}
-                            </Text>
-                          </View>
-                          <Select.ItemIndicator />
-                        </Select.Item>
+                        />
                       ))}
                     </ScrollView>
                   </Select.Content>

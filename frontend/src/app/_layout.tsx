@@ -144,6 +144,15 @@ function AppContent() {
                     title: ""
                   }}
                 />
+                <Stack.Screen
+                  name="login"
+                  options={{
+                    headerShown: true,
+                    headerBackTitle: "Retour",
+                    title: "Se connecter",
+                    presentation: "modal"
+                  }}
+                />
               </Stack>
             </NotificationCenterProvider>
             </ChatProvider>

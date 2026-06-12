@@ -32,21 +32,47 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
 
   @Query(value = """
       SELECT o.* FROM offers o
-      JOIN users u ON o.provider_id = u.id
       WHERE o.active = true
       AND (:categoryId IS NULL OR o.category_id = CAST(:categoryId AS uuid))
-      AND (:searchText IS NULL OR o.title % :searchText OR o.description % :searchText)
       AND ST_DWithin(o.location, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326), :radiusMeters)
+      AND (
+        :searchText IS NULL
+        OR o.search_vector_en @@ websearch_to_tsquery('english', :searchText)
+        OR o.search_vector_fr @@ websearch_to_tsquery('french',  :searchText)
+        OR similarity(o.title, :searchText) > 0.2
+        OR similarity(o.description, :searchText) > 0.2
+      )
       ORDER BY
-        CASE WHEN :searchText IS NULL THEN 0 ELSE 1 END DESC,
-        GREATEST(similarity(o.title, COALESCE(:searchText, '')), similarity(o.description, COALESCE(:searchText, ''))) DESC,
-        ST_Distance(o.location, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)) ASC
+        CASE
+          WHEN :searchText IS NULL THEN
+            1.0 - LEAST(
+              ST_Distance(o.location, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)) / :radiusMeters,
+              1.0)
+          ELSE
+            0.5 * GREATEST(
+              LEAST(
+                ts_rank_cd(o.search_vector_en, websearch_to_tsquery('english', :searchText))
+                + ts_rank_cd(o.search_vector_fr, websearch_to_tsquery('french',  :searchText)),
+                1.0),
+              similarity(o.title, :searchText),
+              similarity(o.description, :searchText))
+            + 0.5 * (1.0 - LEAST(
+              ST_Distance(o.location, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)) / :radiusMeters,
+              1.0))
+        END DESC,
+        o.created_at DESC
       """, countQuery = """
       SELECT COUNT(*) FROM offers o
       WHERE o.active = true
       AND (:categoryId IS NULL OR o.category_id = CAST(:categoryId AS uuid))
-      AND (:searchText IS NULL OR o.title % :searchText OR o.description % :searchText)
       AND ST_DWithin(o.location, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326), :radiusMeters)
+      AND (
+        :searchText IS NULL
+        OR o.search_vector_en @@ websearch_to_tsquery('english', :searchText)
+        OR o.search_vector_fr @@ websearch_to_tsquery('french',  :searchText)
+        OR similarity(o.title, :searchText) > 0.2
+        OR similarity(o.description, :searchText) > 0.2
+      )
       """, nativeQuery = true)
   Page<Offer> searchWithLocation(
       @Param("searchText") String searchText,
@@ -58,19 +84,39 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
 
   @Query(value = """
       SELECT o.* FROM offers o
-      JOIN users u ON o.provider_id = u.id
       WHERE o.active = true
       AND (:categoryId IS NULL OR o.category_id = CAST(:categoryId AS uuid))
-      AND (:searchText IS NULL OR o.title % :searchText OR o.description % :searchText)
+      AND (
+        :searchText IS NULL
+        OR o.search_vector_en @@ websearch_to_tsquery('english', :searchText)
+        OR o.search_vector_fr @@ websearch_to_tsquery('french',  :searchText)
+        OR similarity(o.title, :searchText) > 0.2
+        OR similarity(o.description, :searchText) > 0.2
+      )
       ORDER BY
         CASE WHEN :searchText IS NULL THEN 0 ELSE 1 END DESC,
-        GREATEST(similarity(o.title, COALESCE(:searchText, '')), similarity(o.description, COALESCE(:searchText, ''))) DESC,
+        CASE
+          WHEN :searchText IS NULL THEN 0.0
+          ELSE GREATEST(
+            LEAST(
+              ts_rank_cd(o.search_vector_en, websearch_to_tsquery('english', :searchText))
+              + ts_rank_cd(o.search_vector_fr, websearch_to_tsquery('french',  :searchText)),
+              1.0),
+            similarity(o.title, :searchText),
+            similarity(o.description, :searchText))
+        END DESC,
         o.created_at DESC
       """, countQuery = """
       SELECT COUNT(*) FROM offers o
       WHERE o.active = true
       AND (:categoryId IS NULL OR o.category_id = CAST(:categoryId AS uuid))
-      AND (:searchText IS NULL OR o.title % :searchText OR o.description % :searchText)
+      AND (
+        :searchText IS NULL
+        OR o.search_vector_en @@ websearch_to_tsquery('english', :searchText)
+        OR o.search_vector_fr @@ websearch_to_tsquery('french',  :searchText)
+        OR similarity(o.title, :searchText) > 0.2
+        OR similarity(o.description, :searchText) > 0.2
+      )
       """, nativeQuery = true)
   Page<Offer> searchWithoutLocation(
       @Param("searchText") String searchText,

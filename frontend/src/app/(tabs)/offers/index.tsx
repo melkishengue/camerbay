@@ -1,6 +1,7 @@
 import { ActiveFilters } from "@/components/ActiveFilters";
 import { CreateOfferFloatingButton } from "@/components/CreateOfferFloatingButton";
 import { FullScreenModal } from "@/components/FullScreenModal";
+import NotificationBell from "@/components/NotificationBell";
 import { OfferCard } from "@/components/offerCard";
 import { OfferSearchForm, SearchFormData } from "@/components/OfferSearchForm";
 import { ProviderCard } from "@/components/ProviderCard";
@@ -300,22 +301,33 @@ function OfferListScreen() {
     <ScreenContainer noHeader>
       {/* Header + search bar */}
       <View className="pt-5 pb-4">
-        <Text
-          className="text-foreground"
-          style={{ fontSize: 30, fontFamily: "Inter_700Bold", marginBottom: 2 }}
-        >
-          Découvrir
-        </Text>
-        <Text
-          className="text-muted"
-          style={{
-            fontSize: 13,
-            fontFamily: "Inter_400Regular",
-            marginBottom: 14
-          }}
-        >
-          Trouvez les meilleurs services près de vous
-        </Text>
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1">
+            <Text
+              className="text-foreground"
+              style={{
+                fontSize: 30,
+                fontFamily: "Inter_700Bold",
+                marginBottom: 2
+              }}
+            >
+              Découvrir
+            </Text>
+            <Text
+              className="text-muted"
+              style={{
+                fontSize: 13,
+                fontFamily: "Inter_400Regular",
+                marginBottom: 14
+              }}
+            >
+              Trouvez les meilleurs services près de vous
+            </Text>
+          </View>
+          <View style={{ paddingTop: 6 }}>
+            <NotificationBell />
+          </View>
+        </View>
 
         <Pressable onPress={openSearchModal}>
           {({ pressed }) => (

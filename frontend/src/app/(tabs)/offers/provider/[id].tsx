@@ -8,7 +8,7 @@ import { useChannelById } from "@/hooks/useChannelById";
 import { useUser } from "@/hooks/useUser";
 import { apiClient } from "@/lib/axios-api-client";
 import { truncateTitle } from "@/lib/utils";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Button, Spinner, useThemeColor } from "heroui-native";
 import { LogIn, MessageCircle } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
@@ -16,7 +16,8 @@ import { Text, View } from "react-native";
 
 export default function ProviderProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user: authUser, isAuthenticated, login } = useAuth();
+  const { user: authUser, isAuthenticated } = useAuth();
+  const router = useRouter();
   const { user, loading } = useUser(id!);
   const { startChatChannel, isCreatingChannel } = useChannelById();
   const [themeColorAccentForeground, accentColor] = useThemeColor([
@@ -160,7 +161,19 @@ export default function ProviderProfileScreen() {
               </Button.Label>
             </Button>
           ) : (
-            <Button variant="primary" onPress={login}>
+            <Button
+              variant="primary"
+              onPress={() =>
+                router.push({
+                  pathname: "/login",
+                  params: {
+                    title: "Contacter le prestataire",
+                    description:
+                      "Connectez-vous pour contacter ce prestataire et démarrer une conversation."
+                  }
+                })
+              }
+            >
               <LogIn
                 size={20}
                 color={themeColorAccentForeground}

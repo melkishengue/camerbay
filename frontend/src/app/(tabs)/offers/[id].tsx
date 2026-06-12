@@ -60,7 +60,7 @@ export default function OfferDetailsScreen() {
     "warning",
     "danger"
   ]);
-  const { user, isAuthenticated, login } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { offer, isLoading } = useOfferDetails(id!);
   const { startChatChannel, isCreatingChannel } = useChannelById();
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -430,7 +430,19 @@ export default function OfferDetailsScreen() {
                 </Button.Label>
               </Button>
             ) : (
-              <Button variant="primary" onPress={login}>
+              <Button
+                variant="primary"
+                onPress={() =>
+                  router.push({
+                    pathname: "/login",
+                    params: {
+                      title: "Contacter le prestataire",
+                      description:
+                        "Connectez-vous pour contacter ce prestataire et démarrer une conversation."
+                    }
+                  })
+                }
+              >
                 <LogIn
                   size={20}
                   color={themeColorAccentForeground}

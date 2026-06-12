@@ -26,8 +26,9 @@ const ICON_MAP: Record<
 };
 
 function getRelativeTime(dateString: string): string {
+  const normalized = /[zZ]|[+-]\d{2}:?\d{2}$/.test(dateString) ? dateString : `${dateString}Z`;
   const now = Date.now();
-  const date = new Date(dateString).getTime();
+  const date = new Date(normalized).getTime();
   const diffMs = now - date;
   const diffMin = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
@@ -37,7 +38,7 @@ function getRelativeTime(dateString: string): string {
   if (diffMin < 60) return `il y a ${diffMin} min`;
   if (diffHours < 24) return `il y a ${diffHours}h`;
   if (diffDays < 7) return `il y a ${diffDays}j`;
-  return new Date(dateString).toLocaleDateString("fr-FR", {
+  return new Date(normalized).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "short"
   });
@@ -67,7 +68,7 @@ export default function NotificationItem({
 }) {
   const { markAsRead } = useNotificationCenter();
   const [foreground, mutedForeground, primaryColor] =
-    useThemeColor(["foreground", "default-400", "primary"]);
+    useThemeColor(["foreground", "muted", "accent"]);
 
   const Icon = ICON_MAP[notification.type] ?? Bell;
   const avatarUrl = notification.data?.senderAvatarUrl;

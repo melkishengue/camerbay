@@ -23,7 +23,8 @@ interface OfferCardProps {
 }
 
 function timeAgo(date: string) {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  const normalized = /[zZ]|[+-]\d{2}:?\d{2}$/.test(date) ? date : `${date}Z`;
+  const seconds = Math.floor((Date.now() - new Date(normalized).getTime()) / 1000);
 
   const intervals = [
     { label: "an", labelPlural: "ans", seconds: 31536000 },

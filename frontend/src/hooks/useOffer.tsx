@@ -12,6 +12,9 @@ export const useOffer = (offer?: Offer | null) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers"] });
       queryClient.invalidateQueries({ queryKey: ["my-offers"] });
+    },
+    onError: (error) => {
+      console.log("😣", error);
     }
   });
 
@@ -51,7 +54,6 @@ export const useOffer = (offer?: Offer | null) => {
   });
 
   const createOffer = async (data: CreateOfferRequest): Promise<Offer> => {
-    console.log("💆‍♀️", JSON.stringify(data, null, 2));
     return createMutation.mutateAsync(data);
   };
 
