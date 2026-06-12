@@ -256,12 +256,12 @@ function OfferListScreen() {
   );
 
   const offersContentContainerClassName = useMemo(
-    () => (offers.length === 0 ? "flex-grow" : "pt-2 pb-28"),
+    () => (offers.length === 0 ? "flex-grow" : "pt-2 pb-2"),
     [offers.length]
   );
 
   const providersContentContainerClassName = useMemo(
-    () => (providers.length === 0 ? "flex-grow" : "pt-2 pb-28"),
+    () => (providers.length === 0 ? "flex-grow" : "pt-2 pb-2"),
     [providers.length]
   );
 
@@ -298,7 +298,7 @@ function OfferListScreen() {
   }
 
   return (
-    <ScreenContainer noHeader>
+    <ScreenContainer noHeader noPaddingBottom>
       {/* Header + search bar */}
       <View className="pt-5 pb-4">
         <View className="flex-row items-start justify-between">

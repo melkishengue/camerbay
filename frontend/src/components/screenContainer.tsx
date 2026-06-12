@@ -15,7 +15,8 @@ export default function ScreenContainer({
   onRefresh,
   immersiveHeader,
   noPadding,
-  noHeader
+  noHeader,
+  noPaddingBottom
 }: {
   children: ReactNode;
   withSchrollView?: boolean;
@@ -23,6 +24,7 @@ export default function ScreenContainer({
   immersiveHeader?: boolean;
   noPadding?: boolean;
   noHeader?: boolean;
+  noPaddingBottom?: boolean;
   onRefresh?: () => void | Promise<void>;
 }) {
   const [backgroundColor, tintColor] = useThemeColor([
@@ -67,7 +69,7 @@ export default function ScreenContainer({
           style={{
             flex: 1,
             paddingTop: headerHeight + 10,
-            paddingBottom: 20
+            paddingBottom: noPaddingBottom ? 0 : 20
           }}
           className={noPadding ? "" : "px-4"}
         >
