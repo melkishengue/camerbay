@@ -126,6 +126,9 @@ function OfferListScreen() {
       setActiveFilters((prev) => {
         const newFilters = { ...prev };
         delete newFilters[key];
+        if (key === "city") {
+          delete newFilters.radius;
+        }
 
         const offerFilters: OfferFilters = {
           searchText: newFilters.searchQuery,
@@ -337,10 +340,15 @@ function OfferListScreen() {
             >
               <Search size={18} color="#71717a" strokeWidth={2} />
               <Text
-                className="text-muted flex-1"
+                className={
+                  activeFilters.searchQuery
+                    ? "text-foreground flex-1"
+                    : "text-muted flex-1"
+                }
                 style={{ fontSize: 14, fontFamily: "Inter_400Regular" }}
+                numberOfLines={1}
               >
-                Rechercher...
+                {activeFilters.searchQuery || "Rechercher..."}
               </Text>
               <View
                 style={{ width: 1, height: 20, backgroundColor: "#3f3f46" }}

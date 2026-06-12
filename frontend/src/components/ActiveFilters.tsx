@@ -1,6 +1,6 @@
 // components/ActiveFilters.tsx
 import { Chip, useThemeColor } from "heroui-native";
-import { MapPin, Ruler, Search, Tag, X } from "lucide-react-native";
+import { MapPin, Ruler, Tag, X } from "lucide-react-native";
 import React from "react";
 import { ScrollView, View } from "react-native";
 import { SearchFormData } from "./OfferSearchForm";
@@ -20,7 +20,6 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
 }) => {
   const [accentForeground] = useThemeColor(["accent-foreground"]);
   const hasActiveFilters =
-    filters.searchQuery ||
     filters.category ||
     filters.city ||
     (filters.radius && filters.radius !== 10);
@@ -34,19 +33,6 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerClassName="gap-2 pr-2"
       >
-        {filters.searchQuery && (
-          <Chip variant="primary" size="md" onPress={onPress}>
-            <Search size={13} color={accentForeground} strokeWidth={2} />
-            <Chip.Label>{filters.searchQuery}</Chip.Label>
-            <X
-              size={13}
-              color={accentForeground}
-              strokeWidth={2.5}
-              onPress={() => onClearFilter("searchQuery")}
-            />
-          </Chip>
-        )}
-
         {filters.category && (
           <Chip variant="primary" size="md" onPress={onPress}>
             <Tag size={13} color={accentForeground} strokeWidth={2} />

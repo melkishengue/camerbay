@@ -4,8 +4,8 @@ import { Category } from "@/types/category";
 import Slider from "@react-native-community/slider";
 import { Button, TextField, useThemeColor } from "heroui-native";
 import { MapPin, Search, SlidersHorizontal, Tag, X } from "lucide-react-native";
-import React from "react";
-import { Controller, useForm } from "react-hook-form";
+import React, { useEffect } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { ScrollView, Text, View } from "react-native";
 import { CategorySelect } from "./categorySelect";
 import { CityAutocomplete } from "./cityAutoComplete";
@@ -36,6 +36,7 @@ export const OfferSearchForm: React.FC<OfferSearchFormProps> = ({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<SearchFormData>({
     defaultValues: {
@@ -45,6 +46,14 @@ export const OfferSearchForm: React.FC<OfferSearchFormProps> = ({
       radius: initialValues?.radius || 10
     }
   });
+
+  const watchedCity = useWatch({ control, name: "city" });
+
+  useEffect(() => {
+    if (!watchedCity) {
+      setValue("radius", 10);
+    }
+  }, [watchedCity, setValue]);
 
   const onSubmit = (data: SearchFormData) => {
     onSearch({

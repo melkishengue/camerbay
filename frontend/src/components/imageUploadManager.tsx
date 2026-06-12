@@ -1,11 +1,12 @@
 import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
 import { Button, useThemeColor } from "heroui-native";
 import { Edit, ImageIcon, Plus, Trash2, X } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  FlatList,
   Image,
   Modal,
   Pressable,
@@ -41,6 +42,8 @@ export const ImageUploadManager: React.FC<PortfolioImageManagerProps> = ({
   const [enlargedImageIndex, setEnlargedImageIndex] = useState<number | null>(
     null
   );
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const enlargedListRef = useRef<FlatList<PortfolioImage>>(null);
   const { pickAndUpload, deleteImage, uploading, error, extractPathFromUrl } =
     useSupabaseStorage();
   const [themeColorAccentForeground] = useThemeColor(["accent-foreground"]);
@@ -90,7 +93,12 @@ export const ImageUploadManager: React.FC<PortfolioImageManagerProps> = ({
   };
 
   const handleImagePress = (index: number) => {
+    setCurrentSlideIndex(index);
     setEnlargedImageIndex(index);
+  };
+
+  const closeEnlarged = () => {
+    setEnlargedImageIndex(null);
   };
 
   const handleDeletePress = (index: number, event: any) => {
@@ -273,29 +281,74 @@ export const ImageUploadManager: React.FC<PortfolioImageManagerProps> = ({
           visible={enlargedImageIndex !== null}
           transparent
           animationType="fade"
-          onRequestClose={() => setEnlargedImageIndex(null)}
+          onRequestClose={closeEnlarged}
         >
-          <Pressable
-            className="flex-1 bg-black/95 justify-center items-center"
-            onPress={() => setEnlargedImageIndex(null)}
-          >
+          <View className="flex-1 bg-black/95">
             {enlargedImageIndex !== null && (
               <>
-                <Image
-                  source={{ uri: images[enlargedImageIndex].url }}
-                  style={{
-                    width: SCREEN_WIDTH * 0.95,
-                    height: SCREEN_HEIGHT * 0.8
+                <FlatList
+                  ref={enlargedListRef}
+                  data={images}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  initialScrollIndex={enlargedImageIndex}
+                  getItemLayout={(_, index) => ({
+                    length: SCREEN_WIDTH,
+                    offset: SCREEN_WIDTH * index,
+                    index
+                  })}
+                  onMomentumScrollEnd={(e) => {
+                    const idx = Math.round(
+                      e.nativeEvent.contentOffset.x / SCREEN_WIDTH
+                    );
+                    setCurrentSlideIndex(idx);
                   }}
-                  resizeMode="contain"
+                  renderItem={({ item }) => (
+                    <Pressable
+                      onPress={closeEnlarged}
+                      style={{
+                        width: SCREEN_WIDTH,
+                        height: SCREEN_HEIGHT,
+                        justifyContent: "center",
+                        alignItems: "center"
+                      }}
+                    >
+                      <Image
+                        source={{ uri: item.url }}
+                        style={{
+                          width: SCREEN_WIDTH * 0.95,
+                          height: SCREEN_HEIGHT * 0.8
+                        }}
+                        resizeMode="contain"
+                      />
+                    </Pressable>
+                  )}
                 />
+
+                {/* Pagination indicator */}
+                {images.length > 1 && (
+                  <View
+                    className="absolute self-center bg-white/20 rounded-full"
+                    style={{
+                      bottom: 40,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6
+                    }}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 13 }}>
+                      {currentSlideIndex + 1} / {images.length}
+                    </Text>
+                  </View>
+                )}
 
                 {/* Close button */}
                 <Button
                   size="md"
                   variant="ghost"
                   isIconOnly
-                  onPress={() => setEnlargedImageIndex(null)}
+                  onPress={closeEnlarged}
                   className="absolute top-12 right-6 w-10 h-10 bg-white/20 rounded-full"
                   style={{
                     shadowColor: "#000",
@@ -309,7 +362,7 @@ export const ImageUploadManager: React.FC<PortfolioImageManagerProps> = ({
                 </Button>
               </>
             )}
-          </Pressable>
+          </View>
         </Modal>
       </View>
     </GestureHandlerRootView>
